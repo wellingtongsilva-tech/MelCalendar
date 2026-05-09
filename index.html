@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendário Mel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        .modal { display: none; }
+        .modal.active { display: flex; }
+        .loading-overlay { display: none; }
+        .loading-overlay.active { display: flex; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen">
+
+    <!-- Indicador de Sincronização -->
+    <div id="sync-status" class="fixed bottom-4 right-4 z-50 bg-gray-800 text-white text-xs px-3 py-1 rounded-full opacity-0 transition-opacity">
+        Sincronizando...
+    </div>
+
+    <!-- Overlay de Carregamento Inicial -->
+    <div id="initial-loader" class="loading-overlay fixed inset-0 bg-white z-[60] flex flex-col items-center justify-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+        <p class="text-gray-600 font-medium">Carregando Agenda da Mel...</p>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <h1 class="text-2xl font-bold text-gray-900">Agenda Finais de Semana - 2026</h1>
+            <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
+                <input type="text" id="search-input" oninput="filterCalendar()" placeholder="Pesquisar..." class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 outline-none w-full sm:w-64">
+                <button onclick="scrollToCurrent()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                    Hoje
+                </button>
+                <button onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                    + Novo Evento
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <div id="weekends-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+    </main>
+
+    <!-- Modal -->
+    <div id="modal-compromisso" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 items-center justify-center p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md shadow-xl">
+            <h3 class="text-lg font-bold mb-4">Adicionar Compromisso</h3>
+            <div class="mb-4 flex gap-2">
+                <div class="w-3/5">
+                    <label class="block text-xs text-gray-500 mb-1">Data</label>
+                    <input type="date" id="input-data" class="w-full border border-gray-300 rounded-md p-2">
+                </div>
+                <div class="w-2/5">
+                    <label class="block text-xs text-gray-500 mb-1">Hora</label>
+                    <input type="time" id="input-hora" class="w-full border border-gray-300 rounded-md p-2">
+                </div>
+            </div>
+            <label class="block text-xs text-gray-500 mb-1">Descrição</label>
+            <input type="text" id="input-compromisso" class="w-full border border-gray-300 rounded-md p-2 mb-4">
+            <p id="modal-error" class="text-red-500 text-sm hidden mb-4">Data e Descrição são obrigatórios.</p>
+            <div class="flex justify-end space-x-2">
+                <button onclick="closeModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md">Cancelar</button>
+                <button onclick="saveCommitment()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURAÇÃO ---
+        // COLE A URL QUE VOCÊ COPIOU DO GOOGLE APPS SCRIPT AQUI:
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxMGwQ2ofyI0_O4k7Uk41IZOEPNhFPrHUB82Hzvj1nQ1u1rjBVUP3iQY3qPo_xo7eJQ/exec'; 
+
+        const CURRENT_YEAR = 2026;
+        const DEFAULT_ANCHOR_DATE = '2026-05-09';
+        const DEFAULT_ANCHOR_STATUS = 'com_filhos';
+
+        let appState = {
+            anchorDateStr: DEFAULT_ANCHOR_DATE,
+            anchorStatus: DEFAULT_ANCHOR_STATUS,
+            commitments: {}
+        };
+
+        // --- NÚCLEO DE SINCRONIZAÇÃO ---
+
+        function isUrlConfigured() {
+            return WEB_APP_URL && WEB_APP_URL !== 'https://script.google.com/macros/s/AKfycbxMGwQ2ofyI0_O4k7Uk41IZOEPNhFPrHUB82Hzvj1nQ1u1rjBVUP3iQY3qPo_xo7eJQ/exec' && WEB_APP_URL.startsWith('http');
+        }
+
+        async function loadState() {
+            document.getElementById('initial-loader').classList.add('active');
+            
+            // Tenta carregar do localStorage primeiro para resposta rápida
+            const saved = localStorage.getItem('melCalendarState');
+            if (saved) appState = JSON.parse(saved);
+
+            if (isUrlConfigured()) {
+                try {
+                    const response = await fetch(WEB_APP_URL);
+                    if (response.ok) {
+                        const remoteData = await response.json();
+                        appState = remoteData;
+                        // Atualiza o cache local com os dados remotos
+                        localStorage.setItem('melCalendarState', JSON.stringify(appState));
+                    }
+                } catch (error) {
+                    console.error("Erro ao carregar dados remotos:", error);
+                }
+            } else {
+                console.warn("A URL do Google Apps Script não foi configurada. Usando apenas armazenamento local.");
+            }
+            
+            document.getElementById('initial-loader').classList.remove('active');
+        }
+
+        async function syncWithServer() {
+            showSyncIndicator(true);
+            localStorage.setItem('melCalendarState', JSON.stringify(appState));
+            
+            if (isUrlConfigured()) {
+                try {
+                    await fetch(WEB_APP_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        body: JSON.stringify(appState)
+                    });
+                } catch (error) {
+                    console.error("Erro na sincronização remota:", error);
+                }
+            }
+            
+            setTimeout(() => showSyncIndicator(false), 1000);
+        }
+
+        function showSyncIndicator(show) {
+            const el = document.getElementById('sync-status');
+            el.style.opacity = show ? '1' : '0';
+        }
+
+        // --- LÓGICA DO CALENDÁRIO ---
+
+        function getSaturdays(year) {
+            let saturdays = [];
+            let d = new Date(year, 0, 1);
+            while (d.getDay() !== 6) d.setDate(d.getDate() + 1);
+            while (d.getFullYear() === year) {
+                saturdays.push(d.toISOString().split('T')[0]);
+                d.setDate(d.getDate() + 7);
+            }
+            return saturdays;
+        }
+
+        function getWeekDiff(dateStr1, dateStr2) {
+            let d1 = new Date(dateStr1 + 'T12:00:00');
+            let d2 = new Date(dateStr2 + 'T12:00:00');
+            return Math.round(Math.abs(d2 - d1) / (7 * 24 * 60 * 60 * 1000));
+        }
+
+        const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+        function render() {
+            const container = document.getElementById('weekends-container');
+            container.innerHTML = '';
+            const saturdays = getSaturdays(CURRENT_YEAR);
+            let items = saturdays.map(s => ({ type: 'weekend', date: s }));
+            
+            Object.keys(appState.commitments).forEach(d => {
+                let day = new Date(d + 'T12:00:00').getDay();
+                if (day !== 6 && day !== 0) items.push({ type: 'midweek', date: d });
+            });
+
+            items.sort((a, b) => a.date.localeCompare(b.date));
+
+            items.forEach(item => {
+                const card = document.createElement('div');
+                card.id = `card-${item.date}`;
+                const isWeekend = item.type === 'weekend';
+                
+                if (isWeekend) {
+                    let diff = getWeekDiff(item.date, appState.anchorDateStr);
+                    let status = (diff % 2 === 0) ? appState.anchorStatus : (appState.anchorStatus === 'com_filhos' ? 'sem_filhos' : 'com_filhos');
+                    let dSun = new Date(item.date + 'T12:00:00'); dSun.setDate(dSun.getDate() + 1);
+                    let sunStr = dSun.toISOString().split('T')[0];
+                    
+                    let comps = [...(appState.commitments[item.date] || []), ...(appState.commitments[sunStr] || [])];
+                    let statusClass = status === 'com_filhos' ? 'bg-indigo-100 text-indigo-800' : 'bg-emerald-100 text-emerald-800';
+                    
+                    card.className = `bg-white rounded-xl p-4 border ${comps.length ? 'border-amber-400 shadow-md' : 'border-gray-200'} transition-all`;
+                    card.innerHTML = `
+                        <div class="flex justify-between mb-3"><span class="font-bold">${item.date.split('-')[2]}/${item.date.split('-')[1]}</span><span class="text-xs ${statusClass} px-2 py-0.5 rounded-full font-bold">${status === 'com_filhos' ? 'Com Filhos' : 'Sem Filhos'}</span></div>
+                        <ul class="space-y-2 mb-4">${renderComps(item.date, true)}</ul>
+                        <button onclick="openModal('${item.date}')" class="w-full py-1 border border-dashed border-gray-300 rounded text-xs text-gray-500 hover:bg-gray-50">+ Adicionar</button>
+                    `;
+                } else {
+                    card.className = "bg-blue-50 rounded-xl p-4 border border-blue-200";
+                    card.innerHTML = `
+                        <div class="flex justify-between mb-3"><span class="font-bold text-blue-900">${item.date.split('-')[2]}/${item.date.split('-')[1]}</span><span class="text-[10px] text-blue-600 font-bold uppercase">Meio de Semana</span></div>
+                        <ul class="space-y-2 mb-4">${renderComps(item.date)}</ul>
+                        <button onclick="openModal('${item.date}')" class="w-full py-1 border border-dashed border-blue-300 rounded text-xs text-blue-600 hover:bg-blue-100">+ Adicionar</button>
+                    `;
+                }
+                container.appendChild(card);
+            });
+        }
+
+        function renderComps(date, checkWeekend = false) {
+            let dates = [date];
+            if(checkWeekend) {
+                let d = new Date(date + 'T12:00:00'); d.setDate(d.getDate()+1);
+                dates.push(d.toISOString().split('T')[0]);
+            }
+            
+            let html = '';
+            dates.forEach(d => {
+                (appState.commitments[d] || []).forEach((c, i) => {
+                    html += `<li class="flex justify-between items-start text-sm border-b border-black/5 pb-1">
+                        <div><p class="font-medium">${c.text}</p><p class="text-[10px] text-gray-400">${d.split('-')[2]}/${d.split('-')[1]} ${c.time || ''}</p></div>
+                        <div class="flex gap-1">
+                            <button onclick="addToCalendar('${d}', '${c.time}', '${c.text}')" class="text-blue-500">📱</button>
+                            <button onclick="deleteComp('${d}', ${i})" class="text-red-400">&times;</button>
+                        </div>
+                    </li>`;
+                });
+            });
+            return html;
+        }
+
+        // --- AÇÕES ---
+
+        function openModal(d = '') {
+            document.getElementById('input-data').value = d || new Date().toISOString().split('T')[0];
+            document.getElementById('input-hora').value = '';
+            document.getElementById('input-compromisso').value = '';
+            document.getElementById('modal-error').classList.add('hidden');
+            document.getElementById('modal-compromisso').classList.add('active');
+        }
+
+        function closeModal() { document.getElementById('modal-compromisso').classList.remove('active'); }
+
+        async function saveCommitment() {
+            const d = document.getElementById('input-data').value;
+            const t = document.getElementById('input-hora').value;
+            const text = document.getElementById('input-compromisso').value.trim();
+            if(!d || !text) return document.getElementById('modal-error').classList.remove('hidden');
+            
+            if(!appState.commitments[d]) appState.commitments[d] = [];
+            appState.commitments[d].push({time: t, text});
+            closeModal();
+            render();
+            await syncWithServer();
+        }
+
+        async function deleteComp(d, i) {
+            appState.commitments[d].splice(i, 1);
+            if(!appState.commitments[d].length) delete appState.commitments[d];
+            render();
+            await syncWithServer();
+        }
+
+        function scrollToCurrent(smooth = true) {
+            const today = new Date().toISOString().split('T')[0];
+            const saturdays = getSaturdays(CURRENT_YEAR);
+            const target = saturdays.find(s => s >= today) || saturdays[saturdays.length-1];
+            const el = document.getElementById(`card-${target}`);
+            if(el) el.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'center' });
+        }
+
+        function filterCalendar() {
+            const q = document.getElementById('search-input').value.toLowerCase();
+            document.querySelectorAll('#weekends-container > div').forEach(card => {
+                card.style.display = card.innerText.toLowerCase().includes(q) ? 'block' : 'none';
+            });
+        }
+
+        function addToCalendar(d, t, text) {
+            let start = new Date(`${d}T${t || '12:00'}:00`);
+            let end = new Date(start.getTime() + 3600000);
+            let f = (date) => date.toISOString().replace(/-|:|\.\d+/g, '');
+            let ics = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:${f(start)}\nDTEND:${f(end)}\nSUMMARY:${text}\nEND:VEVENT\nEND:VCALENDAR`;
+            let blob = new Blob([ics], {type: 'text/calendar'});
+            let a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'evento.ics'; a.click();
+        }
+
+        window.onload = async () => {
+            await loadState();
+            render();
+            setTimeout(() => scrollToCurrent(false), 500);
+        };
+    </script>
+</body>
+</html>
