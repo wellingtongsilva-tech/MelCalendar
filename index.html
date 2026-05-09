@@ -24,6 +24,7 @@
     <div id="initial-loader" class="loading-overlay fixed inset-0 bg-white z-[60] flex flex-col items-center justify-center">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
         <p class="text-gray-600 font-medium">Carregando Agenda da Mel...</p>
+        <p id="loader-error" class="text-red-500 text-xs mt-2 hidden">Erro na conexão. Verifique a URL do Script.</p>
     </div>
 
     <!-- Header -->
@@ -72,7 +73,7 @@
 
     <script>
         // --- CONFIGURAÇÃO ---
-        // COLE A URL QUE VOCÊ COPIOU DO GOOGLE APPS SCRIPT AQUI:
+        // IMPORTANTE: Use a URL completa começando com https://script.google.com/...
         const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxMGwQ2ofyI0_O4k7Uk41IZOEPNhFPrHUB82Hzvj1nQ1u1rjBVUP3iQY3qPo_xo7eJQ/exec'; 
 
         const CURRENT_YEAR = 2026;
@@ -88,13 +89,13 @@
         // --- NÚCLEO DE SINCRONIZAÇÃO ---
 
         function isUrlConfigured() {
-            return WEB_APP_URL && WEB_APP_URL == 'https://script.google.com/macros/s/AKfycbxMGwQ2ofyI0_O4k7Uk41IZOEPNhFPrHUB82Hzvj1nQ1u1rjBVUP3iQY3qPo_xo7eJQ/exec' && WEB_APP_URL.startsWith('http');
+            return WEB_APP_URL && WEB_APP_URL !== 'COLE_SUA_URL_AQUI' && WEB_APP_URL.startsWith('http');
         }
 
         async function loadState() {
-            document.getElementById('initial-loader').classList.add('active');
+            const loader = document.getElementById('initial-loader');
+            loader.classList.add('active');
             
-            // Tenta carregar do localStorage primeiro para resposta rápida
             const saved = localStorage.getItem('melCalendarState');
             if (saved) appState = JSON.parse(saved);
 
@@ -104,17 +105,17 @@
                     if (response.ok) {
                         const remoteData = await response.json();
                         appState = remoteData;
-                        // Atualiza o cache local com os dados remotos
                         localStorage.setItem('melCalendarState', JSON.stringify(appState));
                     }
                 } catch (error) {
                     console.error("Erro ao carregar dados remotos:", error);
+                    document.getElementById('loader-error').classList.remove('hidden');
+                    // Aguarda 2 segundos antes de tirar o loader para o usuário ver o erro
+                    await new Promise(r => setTimeout(r, 2000));
                 }
-            } else {
-                console.warn("A URL do Google Apps Script não foi configurada. Usando apenas armazenamento local.");
             }
             
-            document.getElementById('initial-loader').classList.remove('active');
+            loader.classList.remove('active');
         }
 
         async function syncWithServer() {
@@ -160,17 +161,19 @@
             return Math.round(Math.abs(d2 - d1) / (7 * 24 * 60 * 60 * 1000));
         }
 
-        const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-
         function render() {
             const container = document.getElementById('weekends-container');
+            if (!container) return;
             container.innerHTML = '';
+            
             const saturdays = getSaturdays(CURRENT_YEAR);
             let items = saturdays.map(s => ({ type: 'weekend', date: s }));
             
             Object.keys(appState.commitments).forEach(d => {
                 let day = new Date(d + 'T12:00:00').getDay();
-                if (day !== 6 && day !== 0) items.push({ type: 'midweek', date: d });
+                if (day !== 6 && day !== 0) {
+                    if (!items.find(it => it.date === d)) items.push({ type: 'midweek', date: d });
+                }
             });
 
             items.sort((a, b) => a.date.localeCompare(b.date));
@@ -286,9 +289,14 @@
         }
 
         window.onload = async () => {
-            await loadState();
-            render();
-            setTimeout(() => scrollToCurrent(false), 500);
+            try {
+                await loadState();
+                render();
+                setTimeout(() => scrollToCurrent(false), 500);
+            } catch (err) {
+                console.error("Erro fatal na inicialização:", err);
+                document.getElementById('initial-loader').classList.remove('active');
+            }
         };
     </script>
 </body>
