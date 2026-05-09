@@ -88,7 +88,7 @@
         // --- NÚCLEO DE SINCRONIZAÇÃO ---
 
         function isUrlConfigured() {
-            return WEB_APP_URL && WEB_APP_URL !== 'https://script.google.com/macros/s/AKfycbxMGwQ2ofyI0_O4k7Uk41IZOEPNhFPrHUB82Hzvj1nQ1u1rjBVUP3iQY3qPo_xo7eJQ/exec' && WEB_APP_URL.startsWith('http');
+            return WEB_APP_URL && WEB_APP_URL == 'https://script.google.com/macros/s/AKfycbxMGwQ2ofyI0_O4k7Uk41IZOEPNhFPrHUB82Hzvj1nQ1u1rjBVUP3iQY3qPo_xo7eJQ/exec' && WEB_APP_URL.startsWith('http');
         }
 
         async function loadState() {
