@@ -11,9 +11,10 @@
         .modal.active { display: flex; }
         .loading-overlay { display: none; }
         .loading-overlay.active { display: flex; }
+        .day-card { min-height: 120px; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 min-h-screen">
+<body class="bg-gray-100 text-gray-800 min-h-screen">
 
     <!-- Indicador de Sincronização -->
     <div id="sync-status" class="fixed bottom-4 right-4 z-50 bg-gray-800 text-white text-xs px-3 py-1 rounded-full opacity-0 transition-opacity">
@@ -30,9 +31,9 @@
     <!-- Header -->
     <header class="bg-white shadow-sm sticky top-0 z-10">
         <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <h1 class="text-2xl font-bold text-gray-900">Agenda Finais de Semana - 2026</h1>
+            <h1 class="text-2xl font-bold text-gray-900">Agenda Mel 2026</h1>
             <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
-                <input type="text" id="search-input" oninput="filterCalendar()" placeholder="Pesquisar..." class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 outline-none w-full sm:w-64">
+                <input type="text" id="search-input" oninput="filterCalendar()" placeholder="Pesquisar compromisso..." class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 outline-none w-full sm:w-64">
                 <button onclick="scrollToCurrent()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md text-sm font-medium transition-colors">
                     Hoje
                 </button>
@@ -44,7 +45,9 @@
     </header>
 
     <main class="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <div id="weekends-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+        <div id="calendar-container" class="space-y-12">
+            <!-- Semanas geradas via JS -->
+        </div>
     </main>
 
     <!-- Modal -->
@@ -85,53 +88,47 @@
             commitments: {}
         };
 
-        // --- NÚCLEO DE SINCRONIZAÇÃO ---
+        const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+        const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+        // --- SINCRONIZAÇÃO ---
 
         function isUrlConfigured() {
             return WEB_APP_URL && WEB_APP_URL !== 'COLE_SUA_URL_AQUI' && WEB_APP_URL.startsWith('http');
         }
 
         async function loadState() {
-            console.log("Iniciando carregamento...");
+            const loader = document.getElementById('initial-loader');
+            loader.classList.add('active');
             
-            // Carregar do localStorage primeiro para garantir que algo apareça logo
             const saved = localStorage.getItem('melCalendarState');
-            if (saved) {
-                try {
-                    appState = JSON.parse(saved);
-                    console.log("Estado carregado do localStorage.");
-                } catch(e) { console.error(e); }
-            }
+            if (saved) appState = JSON.parse(saved);
 
             if (isUrlConfigured()) {
                 try {
-                    // Criar um controlador para cancelar a requisição se demorar mais de 5 segundos
                     const controller = new AbortController();
                     const timeoutId = setTimeout(() => controller.abort(), 5000);
-
                     const response = await fetch(WEB_APP_URL, { signal: controller.signal });
                     clearTimeout(timeoutId);
 
                     if (response.ok) {
                         const remoteData = await response.json();
-                        // Validar se os dados remotos têm a estrutura correta
                         if (remoteData && remoteData.anchorDateStr) {
                             appState = remoteData;
                             localStorage.setItem('melCalendarState', JSON.stringify(appState));
-                            console.log("Dados remotos carregados com sucesso.");
                         }
                     }
                 } catch (error) {
-                    console.error("Erro ou timeout ao carregar dados remotos:", error);
+                    console.error("Erro no carregamento remoto:", error);
                     document.getElementById('loader-error').classList.remove('hidden');
                 }
             }
+            loader.classList.remove('active');
         }
 
         async function syncWithServer() {
             showSyncIndicator(true);
             localStorage.setItem('melCalendarState', JSON.stringify(appState));
-            
             if (isUrlConfigured()) {
                 try {
                     await fetch(WEB_APP_URL, {
@@ -139,9 +136,7 @@
                         mode: 'no-cors',
                         body: JSON.stringify(appState)
                     });
-                } catch (error) {
-                    console.error("Erro na sincronização remota:", error);
-                }
+                } catch (error) { console.error("Erro na sincronização:", error); }
             }
             setTimeout(() => showSyncIndicator(false), 1000);
         }
@@ -151,100 +146,110 @@
             if (el) el.style.opacity = show ? '1' : '0';
         }
 
-        // --- LÓGICA DO CALENDÁRIO ---
-
-        function getSaturdays(year) {
-            let saturdays = [];
-            let d = new Date(year, 0, 1);
-            while (d.getDay() !== 6) d.setDate(d.getDate() + 1);
-            while (d.getFullYear() === year) {
-                saturdays.push(d.toISOString().split('T')[0]);
-                d.setDate(d.getDate() + 7);
-            }
-            return saturdays;
-        }
+        // --- LÓGICA DE RENDERIZAÇÃO ---
 
         function getWeekDiff(dateStr1, dateStr2) {
             let d1 = new Date(dateStr1 + 'T12:00:00');
             let d2 = new Date(dateStr2 + 'T12:00:00');
+            // Normalizar para o sábado da semana para cálculo de diff consistente
+            d1.setDate(d1.getDate() + (6 - d1.getDay()));
+            d2.setDate(d2.getDate() + (6 - d2.getDay()));
             return Math.round(Math.abs(d2 - d1) / (7 * 24 * 60 * 60 * 1000));
         }
 
-        function render() {
-            console.log("Iniciando renderização...");
-            const container = document.getElementById('weekends-container');
-            if (!container) return;
-            container.innerHTML = '';
-            
-            const saturdays = getSaturdays(CURRENT_YEAR);
-            let items = saturdays.map(s => ({ type: 'weekend', date: s }));
-            
-            if (appState.commitments) {
-                Object.keys(appState.commitments).forEach(d => {
-                    let day = new Date(d + 'T12:00:00').getDay();
-                    if (day !== 6 && day !== 0) {
-                        if (!items.find(it => it.date === d)) items.push({ type: 'midweek', date: d });
-                    }
-                });
+        function getAllDaysOfYear(year) {
+            let days = [];
+            let date = new Date(year, 0, 1);
+            // Ajustar para a segunda-feira da primeira semana do ano (ou domingo se preferir)
+            while (date.getDay() !== 1) { date.setDate(date.getDate() - 1); }
+
+            while (date.getFullYear() <= year || date.getDay() !== 1) {
+                if (date.getFullYear() > year && date.getDay() === 1) break;
+                days.push(new Date(date));
+                date.setDate(date.getDate() + 1);
             }
-
-            items.sort((a, b) => a.date.localeCompare(b.date));
-
-            items.forEach(item => {
-                const card = document.createElement('div');
-                card.id = `card-${item.date}`;
-                const isWeekend = item.type === 'weekend';
-                
-                if (isWeekend) {
-                    let diff = getWeekDiff(item.date, appState.anchorDateStr);
-                    let status = (diff % 2 === 0) ? appState.anchorStatus : (appState.anchorStatus === 'com_filhos' ? 'sem_filhos' : 'com_filhos');
-                    let dSun = new Date(item.date + 'T12:00:00'); dSun.setDate(dSun.getDate() + 1);
-                    let sunStr = dSun.toISOString().split('T')[0];
-                    
-                    let comps = [...(appState.commitments[item.date] || []), ...(appState.commitments[sunStr] || [])];
-                    let statusClass = status === 'com_filhos' ? 'bg-indigo-100 text-indigo-800' : 'bg-emerald-100 text-emerald-800';
-                    
-                    card.className = `bg-white rounded-xl p-4 border ${comps.length ? 'border-amber-400 shadow-md' : 'border-gray-200'} transition-all`;
-                    card.innerHTML = `
-                        <div class="flex justify-between mb-3"><span class="font-bold">${item.date.split('-')[2]}/${item.date.split('-')[1]}</span><span class="text-xs ${statusClass} px-2 py-0.5 rounded-full font-bold">${status === 'com_filhos' ? 'Com Filhos' : 'Sem Filhos'}</span></div>
-                        <ul class="space-y-2 mb-4">${renderComps(item.date, true)}</ul>
-                        <button onclick="openModal('${item.date}')" class="w-full py-1 border border-dashed border-gray-300 rounded text-xs text-gray-500 hover:bg-gray-50">+ Adicionar</button>
-                    `;
-                } else {
-                    card.className = "bg-blue-50 rounded-xl p-4 border border-blue-200";
-                    card.innerHTML = `
-                        <div class="flex justify-between mb-3"><span class="font-bold text-blue-900">${item.date.split('-')[2]}/${item.date.split('-')[1]}</span><span class="text-[10px] text-blue-600 font-bold uppercase">Meio de Semana</span></div>
-                        <ul class="space-y-2 mb-4">${renderComps(item.date)}</ul>
-                        <button onclick="openModal('${item.date}')" class="w-full py-1 border border-dashed border-blue-300 rounded text-xs text-blue-600 hover:bg-blue-100">+ Adicionar</button>
-                    `;
-                }
-                container.appendChild(card);
-            });
-            console.log("Renderização concluída.");
+            return days;
         }
 
-        function renderComps(date, checkWeekend = false) {
-            let dates = [date];
-            if(checkWeekend) {
-                let d = new Date(date + 'T12:00:00'); d.setDate(d.getDate()+1);
-                dates.push(d.toISOString().split('T')[0]);
-            }
+        function render() {
+            const container = document.getElementById('calendar-container');
+            container.innerHTML = '';
             
-            let html = '';
-            dates.forEach(d => {
-                if (appState.commitments && appState.commitments[d]) {
-                    appState.commitments[d].forEach((c, i) => {
-                        html += `<li class="flex justify-between items-start text-sm border-b border-black/5 pb-1">
-                            <div><p class="font-medium">${c.text}</p><p class="text-[10px] text-gray-400">${d.split('-')[2]}/${d.split('-')[1]} ${c.time || ''}</p></div>
-                            <div class="flex gap-1">
-                                <button onclick="addToCalendar('${d}', '${c.time}', '${c.text}')" class="text-blue-500">📱</button>
-                                <button onclick="deleteComp('${d}', ${i})" class="text-red-400">&times;</button>
-                            </div>
-                        </li>`;
-                    });
+            const allDays = getAllDaysOfYear(CURRENT_YEAR);
+            let currentWeekHtml = '';
+            let currentMonth = -1;
+
+            for (let i = 0; i < allDays.length; i += 7) {
+                const weekDays = allDays.slice(i, i + 7);
+                const firstDay = weekDays[0];
+                
+                // Cabeçalho de Mês
+                if (firstDay.getMonth() !== currentMonth && firstDay.getFullYear() === CURRENT_YEAR) {
+                    currentMonth = firstDay.getMonth();
+                    const monthHeader = document.createElement('h2');
+                    monthHeader.className = "text-2xl font-bold text-gray-700 border-b-2 border-gray-300 pb-2 mt-8 mb-4";
+                    monthHeader.innerText = meses[currentMonth];
+                    container.appendChild(monthHeader);
                 }
-            });
-            return html;
+
+                const weekGrid = document.createElement('div');
+                weekGrid.className = "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-6";
+
+                weekDays.forEach(day => {
+                    const dateStr = day.toISOString().split('T')[0];
+                    const isWeekend = (day.getDay() === 0 || day.getDay() === 6);
+                    const isToday = new Date().toISOString().split('T')[0] === dateStr;
+                    
+                    let statusInfo = null;
+                    if (isWeekend) {
+                        // Encontrar o sábado desta semana para cálculo de status
+                        let satDate = new Date(day);
+                        satDate.setDate(day.getDate() + (6 - day.getDay()));
+                        let satStr = satDate.toISOString().split('T')[0];
+                        let diff = getWeekDiff(satStr, appState.anchorDateStr);
+                        let status = (diff % 2 === 0) ? appState.anchorStatus : (appState.anchorStatus === 'com_filhos' ? 'sem_filhos' : 'com_filhos');
+                        statusInfo = status === 'com_filhos' ? { label: 'Com Filhos', class: 'bg-indigo-100 text-indigo-700' } : { label: 'Sem Filhos', class: 'bg-emerald-100 text-emerald-700' };
+                    }
+
+                    const card = document.createElement('div');
+                    card.id = `card-${dateStr}`;
+                    const hasComps = appState.commitments[dateStr] && appState.commitments[dateStr].length > 0;
+                    
+                    let bgClass = isWeekend ? 'bg-white border-gray-300' : 'bg-gray-50 border-gray-200';
+                    if (isToday) bgClass = 'bg-yellow-50 border-yellow-400 ring-2 ring-yellow-200';
+                    if (hasComps) bgClass += ' border-amber-400 shadow-sm';
+
+                    card.className = `day-card rounded-lg p-3 border transition-all flex flex-col ${bgClass}`;
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-sm font-bold ${isToday ? 'text-yellow-700' : 'text-gray-500'}">${diasSemana[day.getDay()]} ${day.getDate()}</span>
+                            ${statusInfo ? `<span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase ${statusInfo.class}">${statusInfo.label}</span>` : ''}
+                        </div>
+                        <div class="flex-grow space-y-1 overflow-y-auto max-h-24">
+                            ${renderDayCommitments(dateStr)}
+                        </div>
+                        <button onclick="openModal('${dateStr}')" class="mt-2 text-[10px] text-gray-400 hover:text-indigo-600 text-left uppercase font-bold">+ Adicionar</button>
+                    `;
+                    weekGrid.appendChild(card);
+                });
+                container.appendChild(weekGrid);
+            }
+        }
+
+        function renderDayCommitments(dateStr) {
+            const comps = appState.commitments[dateStr] || [];
+            return comps.map((c, i) => `
+                <div class="group flex flex-col bg-white border border-gray-100 rounded p-1.5 shadow-sm text-xs">
+                    <div class="flex justify-between items-start">
+                        <span class="font-medium text-gray-800 break-words leading-tight">${c.text}</span>
+                        <div class="flex gap-1 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                             <button onclick="addToCalendar('${dateStr}', '${c.time}', '${c.text}')" title="Calendário" class="text-blue-500 hover:text-blue-700">📱</button>
+                             <button onclick="deleteComp('${dateStr}', ${i})" title="Excluir" class="text-red-400 hover:text-red-600 font-bold">&times;</button>
+                        </div>
+                    </div>
+                    ${c.time ? `<span class="text-[10px] text-indigo-500 mt-1 font-bold">🕒 ${c.time}</span>` : ''}
+                </div>
+            `).join('');
         }
 
         // --- AÇÕES ---
@@ -268,13 +273,15 @@
             if(!appState.commitments) appState.commitments = {};
             if(!appState.commitments[d]) appState.commitments[d] = [];
             appState.commitments[d].push({time: t, text});
+            appState.commitments[d].sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'));
+            
             closeModal();
             render();
             await syncWithServer();
         }
 
         async function deleteComp(d, i) {
-            if (appState.commitments && appState.commitments[d]) {
+            if(confirm("Deseja excluir este compromisso?")) {
                 appState.commitments[d].splice(i, 1);
                 if(!appState.commitments[d].length) delete appState.commitments[d];
                 render();
@@ -282,64 +289,38 @@
             }
         }
 
-        function scrollToCurrent(smooth = true) {
+        function scrollToCurrent() {
             const today = new Date().toISOString().split('T')[0];
-            const saturdays = getSaturdays(CURRENT_YEAR);
-            const target = saturdays.find(s => s >= today) || saturdays[saturdays.length-1];
-            const el = document.getElementById(`card-${target}`);
-            if(el) el.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'center' });
+            const el = document.getElementById(`card-${today}`);
+            if(el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.classList.add('ring-4', 'ring-indigo-400');
+                setTimeout(() => el.classList.remove('ring-4', 'ring-indigo-400'), 2000);
+            }
         }
 
         function filterCalendar() {
             const q = document.getElementById('search-input').value.toLowerCase();
-            document.querySelectorAll('#weekends-container > div').forEach(card => {
-                card.style.display = card.innerText.toLowerCase().includes(q) ? 'block' : 'none';
+            document.querySelectorAll('.day-card').forEach(card => {
+                const text = card.innerText.toLowerCase();
+                card.style.opacity = text.includes(q) ? '1' : '0.3';
             });
         }
 
         function addToCalendar(d, t, text) {
-            try {
-                let start = new Date(`${d}T${t || '12:00'}:00`);
-                let end = new Date(start.getTime() + 3600000);
-                let f = (date) => date.toISOString().replace(/-|:|\.\d+/g, '');
-                let ics = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:${f(start)}\nDTEND:${f(end)}\nSUMMARY:${text}\nEND:VEVENT\nEND:VCALENDAR`;
-                let blob = new Blob([ics], {type: 'text/calendar'});
-                let a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'evento.ics'; a.click();
-            } catch(e) { console.error(e); }
+            const start = new Date(`${d}T${t || '12:00'}:00`);
+            const end = new Date(start.getTime() + 3600000);
+            const f = (date) => date.toISOString().replace(/-|:|\.\d+/g, '');
+            const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:${f(start)}\nDTEND:${f(end)}\nSUMMARY:${text}\nEND:VEVENT\nEND:VCALENDAR`;
+            const blob = new Blob([ics], {type: 'text/calendar'});
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'evento.ics'; a.click();
         }
 
-        // --- INICIALIZAÇÃO SEGURA ---
-
-        async function init() {
-            const loader = document.getElementById('initial-loader');
-            try {
-                loader.classList.add('active');
-                await loadState();
-                render();
-                setTimeout(() => scrollToCurrent(false), 500);
-            } catch (err) {
-                console.error("Erro fatal na inicialização:", err);
-            } finally {
-                // Forçar a saída do loader independentemente de erros
-                setTimeout(() => {
-                    loader.classList.remove('active');
-                    loader.style.display = 'none';
-                    console.log("Interface liberada.");
-                }, 500);
-            }
-        }
-
-        // Fallback global para o loader (se após 10 segundos ainda estiver lá, remove)
-        setTimeout(() => {
-            const loader = document.getElementById('initial-loader');
-            if (loader && loader.classList.contains('active')) {
-                console.warn("Remoção forçada do loader por timeout global.");
-                loader.classList.remove('active');
-                loader.style.display = 'none';
-            }
-        }, 10000);
-
-        window.addEventListener('DOMContentLoaded', init);
+        window.onload = async () => {
+            await loadState();
+            render();
+            setTimeout(scrollToCurrent, 500);
+        };
     </script>
 </body>
 </html>
