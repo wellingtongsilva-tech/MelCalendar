@@ -1,326 +1,81 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calendário Mel</title>
+    <title>Agenda Mel 2026</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        .modal { display: none; }
-        .modal.active { display: flex; }
-        .loading-overlay { display: none; }
-        .loading-overlay.active { display: flex; }
-        .day-card { min-height: 120px; }
-    </style>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Phosphor Icons for UI elements -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
 </head>
-<body class="bg-gray-100 text-gray-800 min-h-screen">
+<body class="bg-gray-50 text-slate-800 font-sans flex flex-col min-h-screen">
 
-    <!-- Indicador de Sincronização -->
-    <div id="sync-status" class="fixed bottom-4 right-4 z-50 bg-gray-800 text-white text-xs px-3 py-1 rounded-full opacity-0 transition-opacity">
-        Sincronizando...
-    </div>
+    <!-- Fixed Header -->
+    <header class="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md border-b border-gray-200 z-50 shadow-sm transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo / Title -->
+                <div class="flex-shrink-0 flex items-center gap-2">
+                    <i class="ph-fill ph-calendar-heart text-indigo-600 text-3xl"></i>
+                    <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600 hidden sm:block">
+                        Agenda Mel 2026
+                    </h1>
+                </div>
 
-    <!-- Overlay de Carregamento Inicial -->
-    <div id="initial-loader" class="loading-overlay fixed inset-0 bg-white z-[60] flex flex-col items-center justify-center">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
-        <p class="text-gray-600 font-medium">Carregando Agenda da Mel...</p>
-        <p id="loader-error" class="text-red-500 text-xs mt-2 hidden">A carregar dados locais (Google Drive demorou muito)...</p>
-    </div>
+                <!-- Search Bar -->
+                <div class="flex-1 max-w-lg mx-4">
+                    <div class="relative group">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="ph ph-magnifying-glass text-gray-400 group-focus-within:text-indigo-500 transition-colors"></i>
+                        </div>
+                        <input type="text" id="search-input" 
+                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-full leading-5 bg-gray-50 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white transition-all sm:text-sm" 
+                            placeholder="Buscar eventos...">
+                    </div>
+                </div>
 
-    <!-- Header -->
-    <header class="bg-white shadow-sm sticky top-0 z-10">
-        <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <h1 class="text-2xl font-bold text-gray-900">Agenda Mel 2026</h1>
-            <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
-                <input type="text" id="search-input" oninput="filterCalendar()" placeholder="Pesquisar compromisso..." class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 outline-none w-full sm:w-64">
-                <button onclick="scrollToCurrent()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md text-sm font-medium transition-colors">
-                    Hoje
-                </button>
-                <button onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
-                    + Novo Evento
-                </button>
+                <!-- Actions -->
+                <div class="flex items-center gap-3">
+                    <button id="btn-today" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-full shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
+                        Hoje
+                    </button>
+                    <!-- Loading Indicator -->
+                    <div id="loading-indicator" class="hidden">
+                        <i class="ph ph-spinner animate-spin text-indigo-600 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Days of week header -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-gray-100 bg-white">
+            <div class="grid grid-cols-7 gap-px text-center py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <div>Segunda</div>
+                <div>Terça</div>
+                <div>Quarta</div>
+                <div>Quinta</div>
+                <div>Sexta</div>
+                <div class="text-indigo-500">Sábado</div>
+                <div class="text-indigo-500">Domingo</div>
             </div>
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <div id="calendar-container" class="space-y-12">
-            <!-- Semanas geradas via JS -->
+    <!-- Main Content Container -->
+    <main class="flex-1 mt-28 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pb-12">
+        <div id="calendar-root" class="flex flex-col gap-4">
+            <!-- Weeks will be rendered here by JS -->
         </div>
     </main>
 
-    <!-- Modal -->
-    <div id="modal-compromisso" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 items-center justify-center p-4">
-        <div class="bg-white rounded-lg p-6 w-full max-w-md shadow-xl">
-            <h3 class="text-lg font-bold mb-4">Adicionar Compromisso</h3>
-            <div class="mb-4 flex gap-2">
-                <div class="w-3/5">
-                    <label class="block text-xs text-gray-500 mb-1">Data</label>
-                    <input type="date" id="input-data" class="w-full border border-gray-300 rounded-md p-2">
-                </div>
-                <div class="w-2/5">
-                    <label class="block text-xs text-gray-500 mb-1">Hora</label>
-                    <input type="time" id="input-hora" class="w-full border border-gray-300 rounded-md p-2">
-                </div>
-            </div>
-            <label class="block text-xs text-gray-500 mb-1">Descrição</label>
-            <input type="text" id="input-compromisso" class="w-full border border-gray-300 rounded-md p-2 mb-4">
-            <p id="modal-error" class="text-red-500 text-sm hidden mb-4">Data e Descrição são obrigatórios.</p>
-            <div class="flex justify-end space-x-2">
-                <button onclick="closeModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md">Cancelar</button>
-                <button onclick="saveCommitment()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Salvar</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // --- CONFIGURAÇÃO ---
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxMGwQ2ofyI0_O4k7Uk41IZOEPNhFPrHUB82Hzvj1nQ1u1rjBVUP3iQY3qPo_xo7eJQ/exec'; 
-
-        const CURRENT_YEAR = 2026;
-        const DEFAULT_ANCHOR_DATE = '2026-05-09';
-        const DEFAULT_ANCHOR_STATUS = 'com_filhos';
-
-        let appState = {
-            anchorDateStr: DEFAULT_ANCHOR_DATE,
-            anchorStatus: DEFAULT_ANCHOR_STATUS,
-            commitments: {}
-        };
-
-        const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-        const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-
-        // --- SINCRONIZAÇÃO ---
-
-        function isUrlConfigured() {
-            return WEB_APP_URL && WEB_APP_URL !== 'COLE_SUA_URL_AQUI' && WEB_APP_URL.startsWith('http');
-        }
-
-        async function loadState() {
-            const loader = document.getElementById('initial-loader');
-            loader.classList.add('active');
-            
-            const saved = localStorage.getItem('melCalendarState');
-            if (saved) appState = JSON.parse(saved);
-
-            if (isUrlConfigured()) {
-                try {
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 5000);
-                    const response = await fetch(WEB_APP_URL, { signal: controller.signal });
-                    clearTimeout(timeoutId);
-
-                    if (response.ok) {
-                        const remoteData = await response.json();
-                        if (remoteData && remoteData.anchorDateStr) {
-                            appState = remoteData;
-                            localStorage.setItem('melCalendarState', JSON.stringify(appState));
-                        }
-                    }
-                } catch (error) {
-                    console.error("Erro no carregamento remoto:", error);
-                    document.getElementById('loader-error').classList.remove('hidden');
-                }
-            }
-            loader.classList.remove('active');
-        }
-
-        async function syncWithServer() {
-            showSyncIndicator(true);
-            localStorage.setItem('melCalendarState', JSON.stringify(appState));
-            if (isUrlConfigured()) {
-                try {
-                    await fetch(WEB_APP_URL, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        body: JSON.stringify(appState)
-                    });
-                } catch (error) { console.error("Erro na sincronização:", error); }
-            }
-            setTimeout(() => showSyncIndicator(false), 1000);
-        }
-
-        function showSyncIndicator(show) {
-            const el = document.getElementById('sync-status');
-            if (el) el.style.opacity = show ? '1' : '0';
-        }
-
-        // --- LÓGICA DE RENDERIZAÇÃO ---
-
-        function getWeekDiff(dateStr1, dateStr2) {
-            let d1 = new Date(dateStr1 + 'T12:00:00');
-            let d2 = new Date(dateStr2 + 'T12:00:00');
-            // Normalizar para o sábado da semana para cálculo de diff consistente
-            d1.setDate(d1.getDate() + (6 - d1.getDay()));
-            d2.setDate(d2.getDate() + (6 - d2.getDay()));
-            return Math.round(Math.abs(d2 - d1) / (7 * 24 * 60 * 60 * 1000));
-        }
-
-        function getAllDaysOfYear(year) {
-            let days = [];
-            let date = new Date(year, 0, 1);
-            // Ajustar para a segunda-feira da primeira semana do ano (ou domingo se preferir)
-            while (date.getDay() !== 1) { date.setDate(date.getDate() - 1); }
-
-            while (date.getFullYear() <= year || date.getDay() !== 1) {
-                if (date.getFullYear() > year && date.getDay() === 1) break;
-                days.push(new Date(date));
-                date.setDate(date.getDate() + 1);
-            }
-            return days;
-        }
-
-        function render() {
-            const container = document.getElementById('calendar-container');
-            container.innerHTML = '';
-            
-            const allDays = getAllDaysOfYear(CURRENT_YEAR);
-            let currentWeekHtml = '';
-            let currentMonth = -1;
-
-            for (let i = 0; i < allDays.length; i += 7) {
-                const weekDays = allDays.slice(i, i + 7);
-                const firstDay = weekDays[0];
-                
-                // Cabeçalho de Mês
-                if (firstDay.getMonth() !== currentMonth && firstDay.getFullYear() === CURRENT_YEAR) {
-                    currentMonth = firstDay.getMonth();
-                    const monthHeader = document.createElement('h2');
-                    monthHeader.className = "text-2xl font-bold text-gray-700 border-b-2 border-gray-300 pb-2 mt-8 mb-4";
-                    monthHeader.innerText = meses[currentMonth];
-                    container.appendChild(monthHeader);
-                }
-
-                const weekGrid = document.createElement('div');
-                weekGrid.className = "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-6";
-
-                weekDays.forEach(day => {
-                    const dateStr = day.toISOString().split('T')[0];
-                    const isWeekend = (day.getDay() === 0 || day.getDay() === 6);
-                    const isToday = new Date().toISOString().split('T')[0] === dateStr;
-                    
-                    let statusInfo = null;
-                    if (isWeekend) {
-                        // Encontrar o sábado desta semana para cálculo de status
-                        let satDate = new Date(day);
-                        satDate.setDate(day.getDate() + (6 - day.getDay()));
-                        let satStr = satDate.toISOString().split('T')[0];
-                        let diff = getWeekDiff(satStr, appState.anchorDateStr);
-                        let status = (diff % 2 === 0) ? appState.anchorStatus : (appState.anchorStatus === 'com_filhos' ? 'sem_filhos' : 'com_filhos');
-                        statusInfo = status === 'com_filhos' ? { label: 'Com Filhos', class: 'bg-indigo-100 text-indigo-700' } : { label: 'Sem Filhos', class: 'bg-emerald-100 text-emerald-700' };
-                    }
-
-                    const card = document.createElement('div');
-                    card.id = `card-${dateStr}`;
-                    const hasComps = appState.commitments[dateStr] && appState.commitments[dateStr].length > 0;
-                    
-                    let bgClass = isWeekend ? 'bg-white border-gray-300' : 'bg-gray-50 border-gray-200';
-                    if (isToday) bgClass = 'bg-yellow-50 border-yellow-400 ring-2 ring-yellow-200';
-                    if (hasComps) bgClass += ' border-amber-400 shadow-sm';
-
-                    card.className = `day-card rounded-lg p-3 border transition-all flex flex-col ${bgClass}`;
-                    card.innerHTML = `
-                        <div class="flex justify-between items-start mb-2">
-                            <span class="text-sm font-bold ${isToday ? 'text-yellow-700' : 'text-gray-500'}">${diasSemana[day.getDay()]} ${day.getDate()}</span>
-                            ${statusInfo ? `<span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase ${statusInfo.class}">${statusInfo.label}</span>` : ''}
-                        </div>
-                        <div class="flex-grow space-y-1 overflow-y-auto max-h-24">
-                            ${renderDayCommitments(dateStr)}
-                        </div>
-                        <button onclick="openModal('${dateStr}')" class="mt-2 text-[10px] text-gray-400 hover:text-indigo-600 text-left uppercase font-bold">+ Adicionar</button>
-                    `;
-                    weekGrid.appendChild(card);
-                });
-                container.appendChild(weekGrid);
-            }
-        }
-
-        function renderDayCommitments(dateStr) {
-            const comps = appState.commitments[dateStr] || [];
-            return comps.map((c, i) => `
-                <div class="group flex flex-col bg-white border border-gray-100 rounded p-1.5 shadow-sm text-xs">
-                    <div class="flex justify-between items-start">
-                        <span class="font-medium text-gray-800 break-words leading-tight">${c.text}</span>
-                        <div class="flex gap-1 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                             <button onclick="addToCalendar('${dateStr}', '${c.time}', '${c.text}')" title="Calendário" class="text-blue-500 hover:text-blue-700">📱</button>
-                             <button onclick="deleteComp('${dateStr}', ${i})" title="Excluir" class="text-red-400 hover:text-red-600 font-bold">&times;</button>
-                        </div>
-                    </div>
-                    ${c.time ? `<span class="text-[10px] text-indigo-500 mt-1 font-bold">🕒 ${c.time}</span>` : ''}
-                </div>
-            `).join('');
-        }
-
-        // --- AÇÕES ---
-
-        function openModal(d = '') {
-            document.getElementById('input-data').value = d || new Date().toISOString().split('T')[0];
-            document.getElementById('input-hora').value = '';
-            document.getElementById('input-compromisso').value = '';
-            document.getElementById('modal-error').classList.add('hidden');
-            document.getElementById('modal-compromisso').classList.add('active');
-        }
-
-        function closeModal() { document.getElementById('modal-compromisso').classList.remove('active'); }
-
-        async function saveCommitment() {
-            const d = document.getElementById('input-data').value;
-            const t = document.getElementById('input-hora').value;
-            const text = document.getElementById('input-compromisso').value.trim();
-            if(!d || !text) return document.getElementById('modal-error').classList.remove('hidden');
-            
-            if(!appState.commitments) appState.commitments = {};
-            if(!appState.commitments[d]) appState.commitments[d] = [];
-            appState.commitments[d].push({time: t, text});
-            appState.commitments[d].sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'));
-            
-            closeModal();
-            render();
-            await syncWithServer();
-        }
-
-        async function deleteComp(d, i) {
-            if(confirm("Deseja excluir este compromisso?")) {
-                appState.commitments[d].splice(i, 1);
-                if(!appState.commitments[d].length) delete appState.commitments[d];
-                render();
-                await syncWithServer();
-            }
-        }
-
-        function scrollToCurrent() {
-            const today = new Date().toISOString().split('T')[0];
-            const el = document.getElementById(`card-${today}`);
-            if(el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                el.classList.add('ring-4', 'ring-indigo-400');
-                setTimeout(() => el.classList.remove('ring-4', 'ring-indigo-400'), 2000);
-            }
-        }
-
-        function filterCalendar() {
-            const q = document.getElementById('search-input').value.toLowerCase();
-            document.querySelectorAll('.day-card').forEach(card => {
-                const text = card.innerText.toLowerCase();
-                card.style.opacity = text.includes(q) ? '1' : '0.3';
-            });
-        }
-
-        function addToCalendar(d, t, text) {
-            const start = new Date(`${d}T${t || '12:00'}:00`);
-            const end = new Date(start.getTime() + 3600000);
-            const f = (date) => date.toISOString().replace(/-|:|\.\d+/g, '');
-            const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:${f(start)}\nDTEND:${f(end)}\nSUMMARY:${text}\nEND:VEVENT\nEND:VCALENDAR`;
-            const blob = new Blob([ics], {type: 'text/calendar'});
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'evento.ics'; a.click();
-        }
-
-        window.onload = async () => {
-            await loadState();
-            render();
-            setTimeout(scrollToCurrent, 500);
-        };
-    </script>
+    <script src="api.js"></script>
+    <script src="calendar.js"></script>
 </body>
 </html>

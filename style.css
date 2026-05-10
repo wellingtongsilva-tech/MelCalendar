@@ -1,0 +1,131 @@
+/* Font configuration */
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+/* Card base styling */
+.calendar-day {
+    min-height: 120px;
+    transition: all 0.2s ease-in-out;
+}
+
+.calendar-day:hover {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    transform: translateY(-2px);
+    z-index: 10;
+}
+
+/* Today indicator */
+.day-today {
+    border-color: #eab308 !important; /* Yellow-500 */
+    border-width: 2px !important;
+    background-color: #fefce8 !important; /* Yellow-50 */
+}
+
+.day-today .date-number {
+    background-color: #eab308;
+    color: white;
+    border-radius: 9999px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Weekend labels */
+.weekend-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 6px;
+    border-radius: 9999px;
+    display: inline-block;
+    margin-bottom: 4px;
+}
+
+.label-com-filhos {
+    background-color: #dbeafe; /* Blue-100 */
+    color: #1d4ed8; /* Blue-700 */
+    border: 1px solid #bfdbfe;
+}
+
+.label-sem-filhos {
+    background-color: #fce7f3; /* Pink-100 */
+    color: #be185d; /* Pink-700 */
+    border: 1px solid #fbcfe8;
+}
+
+/* Event styles */
+.event-item {
+    font-size: 0.75rem;
+    padding: 4px 6px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    background-color: #f3f4f6;
+    border-left: 3px solid #9ca3af;
+    cursor: pointer;
+    transition: all 0.2s;
+    word-wrap: break-word;
+    position: relative;
+    group: hover;
+}
+
+.event-item:hover {
+    background-color: #e5e7eb;
+}
+
+.event-has-appointment {
+    border-left-color: #6366f1; /* Indigo-500 */
+    background-color: #e0e7ff; /* Indigo-50 */
+}
+
+/* Search highlight */
+.search-match {
+    background-color: #fef08a; /* Yellow-200 */
+    color: #854d0e; /* Yellow-800 */
+    font-weight: 600;
+}
+
+/* Month separator */
+.month-separator {
+    position: relative;
+    text-align: center;
+    margin: 2rem 0 1rem;
+}
+
+.month-separator::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #e5e7eb;
+    z-index: -1;
+}
+
+.month-separator span {
+    background: #f9fafb;
+    padding: 0 1rem;
+    font-weight: 600;
+    color: #4b5563;
+    font-size: 1.125rem;
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.4s ease-out forwards;
+}
+
+/* Hide scrollbar for grid if it overflows */
+.calendar-grid {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+}
