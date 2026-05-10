@@ -24,7 +24,7 @@
     <div id="initial-loader" class="loading-overlay fixed inset-0 bg-white z-[60] flex flex-col items-center justify-center">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
         <p class="text-gray-600 font-medium">Carregando Agenda da Mel...</p>
-        <p id="loader-error" class="text-red-500 text-xs mt-2 hidden">Erro na conexão. Verifique a URL do Script.</p>
+        <p id="loader-error" class="text-red-500 text-xs mt-2 hidden">A carregar dados locais (Google Drive demorou muito)...</p>
     </div>
 
     <!-- Header -->
@@ -73,7 +73,6 @@
 
     <script>
         // --- CONFIGURAÇÃO ---
-        // IMPORTANTE: Use a URL completa começando com https://script.google.com/...
         const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxMGwQ2ofyI0_O4k7Uk41IZOEPNhFPrHUB82Hzvj1nQ1u1rjBVUP3iQY3qPo_xo7eJQ/exec'; 
 
         const CURRENT_YEAR = 2026;
@@ -93,29 +92,40 @@
         }
 
         async function loadState() {
-            const loader = document.getElementById('initial-loader');
-            loader.classList.add('active');
+            console.log("Iniciando carregamento...");
             
+            // Carregar do localStorage primeiro para garantir que algo apareça logo
             const saved = localStorage.getItem('melCalendarState');
-            if (saved) appState = JSON.parse(saved);
+            if (saved) {
+                try {
+                    appState = JSON.parse(saved);
+                    console.log("Estado carregado do localStorage.");
+                } catch(e) { console.error(e); }
+            }
 
             if (isUrlConfigured()) {
                 try {
-                    const response = await fetch(WEB_APP_URL);
+                    // Criar um controlador para cancelar a requisição se demorar mais de 5 segundos
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+                    const response = await fetch(WEB_APP_URL, { signal: controller.signal });
+                    clearTimeout(timeoutId);
+
                     if (response.ok) {
                         const remoteData = await response.json();
-                        appState = remoteData;
-                        localStorage.setItem('melCalendarState', JSON.stringify(appState));
+                        // Validar se os dados remotos têm a estrutura correta
+                        if (remoteData && remoteData.anchorDateStr) {
+                            appState = remoteData;
+                            localStorage.setItem('melCalendarState', JSON.stringify(appState));
+                            console.log("Dados remotos carregados com sucesso.");
+                        }
                     }
                 } catch (error) {
-                    console.error("Erro ao carregar dados remotos:", error);
+                    console.error("Erro ou timeout ao carregar dados remotos:", error);
                     document.getElementById('loader-error').classList.remove('hidden');
-                    // Aguarda 2 segundos antes de tirar o loader para o usuário ver o erro
-                    await new Promise(r => setTimeout(r, 2000));
                 }
             }
-            
-            loader.classList.remove('active');
         }
 
         async function syncWithServer() {
@@ -133,13 +143,12 @@
                     console.error("Erro na sincronização remota:", error);
                 }
             }
-            
             setTimeout(() => showSyncIndicator(false), 1000);
         }
 
         function showSyncIndicator(show) {
             const el = document.getElementById('sync-status');
-            el.style.opacity = show ? '1' : '0';
+            if (el) el.style.opacity = show ? '1' : '0';
         }
 
         // --- LÓGICA DO CALENDÁRIO ---
@@ -162,6 +171,7 @@
         }
 
         function render() {
+            console.log("Iniciando renderização...");
             const container = document.getElementById('weekends-container');
             if (!container) return;
             container.innerHTML = '';
@@ -169,12 +179,14 @@
             const saturdays = getSaturdays(CURRENT_YEAR);
             let items = saturdays.map(s => ({ type: 'weekend', date: s }));
             
-            Object.keys(appState.commitments).forEach(d => {
-                let day = new Date(d + 'T12:00:00').getDay();
-                if (day !== 6 && day !== 0) {
-                    if (!items.find(it => it.date === d)) items.push({ type: 'midweek', date: d });
-                }
-            });
+            if (appState.commitments) {
+                Object.keys(appState.commitments).forEach(d => {
+                    let day = new Date(d + 'T12:00:00').getDay();
+                    if (day !== 6 && day !== 0) {
+                        if (!items.find(it => it.date === d)) items.push({ type: 'midweek', date: d });
+                    }
+                });
+            }
 
             items.sort((a, b) => a.date.localeCompare(b.date));
 
@@ -208,6 +220,7 @@
                 }
                 container.appendChild(card);
             });
+            console.log("Renderização concluída.");
         }
 
         function renderComps(date, checkWeekend = false) {
@@ -219,15 +232,17 @@
             
             let html = '';
             dates.forEach(d => {
-                (appState.commitments[d] || []).forEach((c, i) => {
-                    html += `<li class="flex justify-between items-start text-sm border-b border-black/5 pb-1">
-                        <div><p class="font-medium">${c.text}</p><p class="text-[10px] text-gray-400">${d.split('-')[2]}/${d.split('-')[1]} ${c.time || ''}</p></div>
-                        <div class="flex gap-1">
-                            <button onclick="addToCalendar('${d}', '${c.time}', '${c.text}')" class="text-blue-500">📱</button>
-                            <button onclick="deleteComp('${d}', ${i})" class="text-red-400">&times;</button>
-                        </div>
-                    </li>`;
-                });
+                if (appState.commitments && appState.commitments[d]) {
+                    appState.commitments[d].forEach((c, i) => {
+                        html += `<li class="flex justify-between items-start text-sm border-b border-black/5 pb-1">
+                            <div><p class="font-medium">${c.text}</p><p class="text-[10px] text-gray-400">${d.split('-')[2]}/${d.split('-')[1]} ${c.time || ''}</p></div>
+                            <div class="flex gap-1">
+                                <button onclick="addToCalendar('${d}', '${c.time}', '${c.text}')" class="text-blue-500">📱</button>
+                                <button onclick="deleteComp('${d}', ${i})" class="text-red-400">&times;</button>
+                            </div>
+                        </li>`;
+                    });
+                }
             });
             return html;
         }
@@ -250,6 +265,7 @@
             const text = document.getElementById('input-compromisso').value.trim();
             if(!d || !text) return document.getElementById('modal-error').classList.remove('hidden');
             
+            if(!appState.commitments) appState.commitments = {};
             if(!appState.commitments[d]) appState.commitments[d] = [];
             appState.commitments[d].push({time: t, text});
             closeModal();
@@ -258,10 +274,12 @@
         }
 
         async function deleteComp(d, i) {
-            appState.commitments[d].splice(i, 1);
-            if(!appState.commitments[d].length) delete appState.commitments[d];
-            render();
-            await syncWithServer();
+            if (appState.commitments && appState.commitments[d]) {
+                appState.commitments[d].splice(i, 1);
+                if(!appState.commitments[d].length) delete appState.commitments[d];
+                render();
+                await syncWithServer();
+            }
         }
 
         function scrollToCurrent(smooth = true) {
@@ -280,24 +298,48 @@
         }
 
         function addToCalendar(d, t, text) {
-            let start = new Date(`${d}T${t || '12:00'}:00`);
-            let end = new Date(start.getTime() + 3600000);
-            let f = (date) => date.toISOString().replace(/-|:|\.\d+/g, '');
-            let ics = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:${f(start)}\nDTEND:${f(end)}\nSUMMARY:${text}\nEND:VEVENT\nEND:VCALENDAR`;
-            let blob = new Blob([ics], {type: 'text/calendar'});
-            let a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'evento.ics'; a.click();
+            try {
+                let start = new Date(`${d}T${t || '12:00'}:00`);
+                let end = new Date(start.getTime() + 3600000);
+                let f = (date) => date.toISOString().replace(/-|:|\.\d+/g, '');
+                let ics = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:${f(start)}\nDTEND:${f(end)}\nSUMMARY:${text}\nEND:VEVENT\nEND:VCALENDAR`;
+                let blob = new Blob([ics], {type: 'text/calendar'});
+                let a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'evento.ics'; a.click();
+            } catch(e) { console.error(e); }
         }
 
-        window.onload = async () => {
+        // --- INICIALIZAÇÃO SEGURA ---
+
+        async function init() {
+            const loader = document.getElementById('initial-loader');
             try {
+                loader.classList.add('active');
                 await loadState();
                 render();
                 setTimeout(() => scrollToCurrent(false), 500);
             } catch (err) {
                 console.error("Erro fatal na inicialização:", err);
-                document.getElementById('initial-loader').classList.remove('active');
+            } finally {
+                // Forçar a saída do loader independentemente de erros
+                setTimeout(() => {
+                    loader.classList.remove('active');
+                    loader.style.display = 'none';
+                    console.log("Interface liberada.");
+                }, 500);
             }
-        };
+        }
+
+        // Fallback global para o loader (se após 10 segundos ainda estiver lá, remove)
+        setTimeout(() => {
+            const loader = document.getElementById('initial-loader');
+            if (loader && loader.classList.contains('active')) {
+                console.warn("Remoção forçada do loader por timeout global.");
+                loader.classList.remove('active');
+                loader.style.display = 'none';
+            }
+        }, 10000);
+
+        window.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
