@@ -5,58 +5,66 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- Configuration & State ---
     const YEAR = 2026;
-    const ANCHOR_DATE = new Date(YEAR, 4, 9); // 2026-05-09 is index 4 for May
+    const ANCHOR_DATE = new Date(YEAR, 4, 9); // 2026-05-09
     const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
     
     let state = {
         events: [],
-        searchQuery: '',
-        isReady: false
+        config: {
+            fixedRules: [] // Array of { dayOfWeek: Number, type: 'Com Filhos'|'Sem Filhos', desc: String }
+        },
+        search: {
+            query: '',
+            start: '',
+            end: ''
+        },
+        isReady: false,
+        selectedDate: null
     };
 
     // --- DOM Elements ---
     const rootEl = document.getElementById('calendar-root');
     const searchInput = document.getElementById('search-input');
+    const filterStart = document.getElementById('filter-date-start');
+    const filterEnd = document.getElementById('filter-date-end');
+    const btnToggleFilters = document.getElementById('btn-toggle-filters');
+    const filtersPanel = document.getElementById('search-filters-panel');
     const btnToday = document.getElementById('btn-today');
+    const btnConfig = document.getElementById('btn-config');
     const loadingIndicator = document.getElementById('loading-indicator');
+
+    // Modals
+    const dayModal = document.getElementById('day-modal');
+    const settingsModal = document.getElementById('settings-modal');
 
     // --- Core Logic ---
 
-    // Generate all days of the year grouped by week (Monday-Sunday)
     function generateCalendarData() {
         const weeks = [];
         let currentWeek = [];
         
-        // Find the first Monday of the calendar (might be in late 2025)
         const firstDayOfYear = new Date(YEAR, 0, 1);
-        const firstDayOfWeek = firstDayOfYear.getDay(); // 0 is Sunday
-        
-        // Calculate offset to previous Monday
-        // getDay(): Sun=0, Mon=1, ..., Sat=6
-        // We want Mon=0, Tue=1, ..., Sun=6
+        const firstDayOfWeek = firstDayOfYear.getDay(); 
         let offsetToMonday = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
         
         let currentDate = new Date(YEAR, 0, 1 - offsetToMonday);
+        const todayStr = getTodayStr();
         
-        // Loop until we cover the entire year
         while (currentDate.getFullYear() <= YEAR || currentWeek.length > 0) {
-            // Stop if we are in the next year AND we've just finished a week
-            if (currentDate.getFullYear() > YEAR && currentWeek.length === 0) {
-                break;
-            }
+            if (currentDate.getFullYear() > YEAR && currentWeek.length === 0) break;
+
+            const dateStr = formatDateStr(currentDate);
+            const dayOfWeek = currentDate.getDay(); // 0 is Sunday, 1 is Monday...
 
             const dayInfo = {
                 date: new Date(currentDate),
-                dateStr: formatDateStr(currentDate),
+                dateStr: dateStr,
                 isCurrentYear: currentDate.getFullYear() === YEAR,
-                isWeekend: currentDate.getDay() === 0 || currentDate.getDay() === 6
+                isPast: dateStr < todayStr,
+                isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
+                dayType: calculateDayType(currentDate, dayOfWeek)
             };
             
-            // Calculate weekend logic based on anchor date
-            if (dayInfo.isWeekend) {
-                dayInfo.weekendType = calculateWeekendType(currentDate);
-            }
-
             currentWeek.push(dayInfo);
 
             if (currentWeek.length === 7) {
@@ -70,28 +78,27 @@ document.addEventListener('DOMContentLoaded', () => {
         return weeks;
     }
 
-    function calculateWeekendType(date) {
-        // Find the Saturday of the week of the given date
-        const d = new Date(date);
-        if (d.getDay() === 0) {
-            d.setDate(d.getDate() - 1); // Move Sunday back to Saturday
-        } else if (d.getDay() !== 6) {
-             // Not weekend, shouldn't be called, but just in case
-             return null;
+    function calculateDayType(date, dayOfWeek) {
+        // 1. Check fixed rules
+        const rule = state.config.fixedRules.find(r => r.dayOfWeek == dayOfWeek);
+        if (rule) return rule.type;
+
+        // 2. If weekend, use alternating logic
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+            const d = new Date(date);
+            if (d.getDay() === 0) d.setDate(d.getDate() - 1); 
+            
+            const anchorSaturday = new Date(ANCHOR_DATE);
+            d.setHours(0,0,0,0);
+            anchorSaturday.setHours(0,0,0,0);
+            
+            const diffMs = d.getTime() - anchorSaturday.getTime();
+            const diffWeeks = Math.round(diffMs / MS_PER_WEEK);
+            
+            return (diffWeeks % 2 === 0) ? 'Com Filhos' : 'Sem Filhos';
         }
 
-        // Anchor is 2026-05-09 (Saturday) -> "Com Filhos" (Assuming this as base)
-        const anchorSaturday = new Date(ANCHOR_DATE);
-        
-        // Reset time to avoid daylight saving issues
-        d.setHours(0,0,0,0);
-        anchorSaturday.setHours(0,0,0,0);
-        
-        const diffMs = d.getTime() - anchorSaturday.getTime();
-        const diffWeeks = Math.round(diffMs / MS_PER_WEEK);
-        
-        // Even difference in weeks means same type as anchor
-        return (diffWeeks % 2 === 0) ? 'Com Filhos' : 'Sem Filhos';
+        return null;
     }
 
     function formatDateStr(date) {
@@ -103,33 +110,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getTodayStr() {
         const today = new Date();
-        // Since we are mocking for 2026, let's pretend today is somewhere in 2026 if it's not
-        // This makes the demo better
-        const demoToday = today.getFullYear() === 2026 ? today : new Date(2026, 4, 15); // May 15, 2026 as fallback today
+        const demoToday = today.getFullYear() === 2026 ? today : new Date(2026, 4, 15);
         return formatDateStr(demoToday);
     }
 
-    // --- Rendering ---
+    // --- Rendering Main Calendar ---
 
     function renderCalendar() {
         rootEl.innerHTML = '';
-        
         if (!state.isReady) return;
 
         const weeks = generateCalendarData();
         let currentMonth = -1;
         const todayStr = getTodayStr();
-
         const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
         weeks.forEach((week, weekIndex) => {
-            // Check if we need a month separator
-            // Usually we add separator if the majority of the week belongs to a new month
-            // Or simply if the Thursday of the week is in a new month
             const thursday = week[3].date;
             if (thursday.getFullYear() === YEAR && thursday.getMonth() !== currentMonth) {
                 currentMonth = thursday.getMonth();
-                
                 const sep = document.createElement('div');
                 sep.className = 'month-separator';
                 sep.innerHTML = `<span>${monthNames[currentMonth]} ${YEAR}</span>`;
@@ -144,65 +143,60 @@ document.addEventListener('DOMContentLoaded', () => {
                 const isToday = day.dateStr === todayStr;
                 const isDimmed = !day.isCurrentYear;
                 
-                // Filter events for this day
-                const dayEvents = state.events.filter(e => e.date === day.dateStr);
+                // Filter events
+                let dayEvents = state.events.filter(e => e.date === day.dateStr);
                 
-                // Filter by search query
-                const filteredEvents = dayEvents.filter(e => {
-                    if (!state.searchQuery) return true;
-                    const query = state.searchQuery.toLowerCase();
-                    return e.title.toLowerCase().includes(query) || 
-                           (e.description && e.description.toLowerCase().includes(query));
+                // Apply search
+                let filteredEvents = dayEvents.filter(e => {
+                    let match = true;
+                    if (state.search.query) {
+                        const q = state.search.query.toLowerCase();
+                        match = e.title.toLowerCase().includes(q) || (e.description && e.description.toLowerCase().includes(q));
+                    }
+                    if (match && state.search.start) {
+                        match = e.date >= state.search.start;
+                    }
+                    if (match && state.search.end) {
+                        match = e.date <= state.search.end;
+                    }
+                    return match;
                 });
 
-                // Determine if we should dim this day entirely due to search
-                const hasSearchQuery = state.searchQuery.length > 0;
-                const hasMatchingEvents = filteredEvents.length > 0;
-                const dimDueToSearch = hasSearchQuery && !hasMatchingEvents;
+                const dimDueToSearch = (state.search.query || state.search.start || state.search.end) && filteredEvents.length === 0;
 
                 const dayCell = document.createElement('div');
-                dayCell.className = `calendar-day relative bg-white p-2 border-b border-r border-gray-100 last:border-r-0 flex flex-col gap-1 
-                                     ${isDimmed ? 'bg-gray-50/50 text-gray-400' : ''} 
+                
+                let bgColorClass = 'bg-white';
+                if (day.isPast) bgColorClass = 'is-past';
+                else if (day.dayType === 'Com Filhos') bgColorClass = 'bg-com-filhos';
+                else if (day.dayType === 'Sem Filhos') bgColorClass = 'bg-sem-filhos';
+
+                dayCell.className = `calendar-day relative p-1 sm:p-2 border-b border-r border-gray-100 last:border-r-0 flex flex-col justify-between
+                                     ${bgColorClass}
+                                     ${isDimmed ? 'opacity-40 grayscale text-gray-400' : ''} 
                                      ${isToday ? 'day-today' : ''}
                                      ${dimDueToSearch ? 'opacity-30' : 'opacity-100'}`;
                 
-                // Ensure it has an ID for scrolling
                 dayCell.id = `day-${day.dateStr}`;
-
-                // Top row: Date number and weekend label
-                let weekendLabelHtml = '';
-                if (day.weekendType && day.isWeekend && !isDimmed) {
-                    const labelClass = day.weekendType === 'Com Filhos' ? 'label-com-filhos' : 'label-sem-filhos';
-                    weekendLabelHtml = `<span class="weekend-label ${labelClass}">${day.weekendType}</span>`;
-                }
-
-                let dateNumHtml = `<div class="date-number text-sm font-semibold mb-1 ${isDimmed ? 'text-gray-400' : 'text-gray-700'}">${day.date.getDate()}</div>`;
                 
+                // Clicking opens day details
+                dayCell.onclick = () => openDayModal(day);
+
+                // Top: Date number
+                let dateNumHtml = `<div class="date-number text-xs sm:text-sm font-semibold ${isDimmed ? 'text-gray-400' : 'text-gray-700'}">${day.date.getDate()}</div>`;
                 if (day.date.getDate() === 1 && !isDimmed) {
-                    dateNumHtml = `<div class="date-number text-sm font-semibold mb-1 text-gray-700">${day.date.getDate()} ${monthNames[day.date.getMonth()].substr(0,3)}</div>`;
+                    dateNumHtml = `<div class="date-number text-xs sm:text-sm font-semibold text-gray-700">${day.date.getDate()} ${monthNames[day.date.getMonth()].substr(0,3)}</div>`;
                 }
 
-                const headerHtml = `
-                    <div class="flex justify-between items-start">
-                        ${dateNumHtml}
-                        <div class="flex flex-col items-end">
-                            ${weekendLabelHtml}
-                        </div>
-                    </div>
-                `;
+                const headerHtml = `<div>${dateNumHtml}</div>`;
 
-                // Events
-                let eventsHtml = '';
-                filteredEvents.forEach(evt => {
-                    eventsHtml += `
-                        <div class="event-item event-has-appointment" onclick="window.calendar.exportEvent(${evt.id})" title="Clique para exportar .ics">
-                            <div class="font-semibold truncate">${highlightText(evt.title, state.searchQuery)}</div>
-                            ${evt.description ? `<div class="text-[10px] text-gray-500 line-clamp-2 mt-0.5">${highlightText(evt.description, state.searchQuery)}</div>` : ''}
-                        </div>
-                    `;
-                });
+                // Bottom: Badge
+                let badgeHtml = '';
+                if (filteredEvents.length > 0) {
+                    badgeHtml = `<div class="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 bg-indigo-500 text-white rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-[10px] sm:text-xs shadow-sm font-bold">${filteredEvents.length}</div>`;
+                }
 
-                dayCell.innerHTML = headerHtml + eventsHtml;
+                dayCell.innerHTML = headerHtml + badgeHtml;
                 weekRow.appendChild(dayCell);
             });
 
@@ -210,189 +204,227 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function highlightText(text, query) {
-        if (!query || !text) return text;
-        const regex = new RegExp(`(${escapeRegExp(query)})`, 'gi');
-        return text.replace(regex, '<span class="search-match">$1</span>');
+    // --- Day Modal Logic ---
+
+    function openDayModal(day) {
+        state.selectedDate = day.dateStr;
+        
+        // Date formatting for title
+        const dObj = new Date(day.date.getTime() + Math.abs(day.date.getTimezoneOffset()*60000));
+        document.getElementById('day-modal-title').textContent = dObj.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+        
+        // Form field
+        document.getElementById('day-event-date').value = day.dateStr;
+        
+        if (day.isPast) {
+            document.getElementById('add-event-section').classList.add('hidden');
+        } else {
+            document.getElementById('add-event-section').classList.remove('hidden');
+            document.getElementById('day-add-event-form').reset();
+        }
+
+        renderDayEventsList();
+        dayModal.classList.remove('hidden');
     }
 
-    function escapeRegExp(string) {
-        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    function renderDayEventsList() {
+        const container = document.getElementById('day-events-list');
+        const evts = state.events.filter(e => e.date === state.selectedDate);
+        
+        if (evts.length === 0) {
+            container.innerHTML = `<p class="text-gray-500 text-sm italic text-center py-4">Nenhum evento para esta data.</p>`;
+            return;
+        }
+
+        container.innerHTML = evts.map(evt => `
+            <div class="bg-gray-50 border border-gray-100 p-3 rounded-lg flex justify-between items-start group">
+                <div>
+                    <h5 class="font-semibold text-gray-800 text-sm">${evt.title}</h5>
+                    ${evt.description ? `<p class="text-xs text-gray-500 mt-1">${evt.description}</p>` : ''}
+                </div>
+                <button onclick="window.calendar.exportEvent(${evt.id})" class="text-indigo-500 hover:text-indigo-700 p-1 bg-white rounded-md border border-indigo-100 shadow-sm" title="Exportar para agenda">
+                    <i class="ph ph-download-simple"></i>
+                </button>
+            </div>
+        `).join('');
     }
 
-    // --- Actions ---
+    document.getElementById('btn-close-day-modal').onclick = () => dayModal.classList.add('hidden');
+    document.getElementById('day-modal-overlay').onclick = () => dayModal.classList.add('hidden');
+
+    document.getElementById('day-add-event-form').onsubmit = (e) => {
+        e.preventDefault();
+        const start = document.getElementById('day-event-date').value;
+        const title = document.getElementById('day-event-title').value.trim();
+        const desc = document.getElementById('day-event-desc').value.trim();
+        const end = document.getElementById('day-event-end').value;
+
+        const startDate = new Date(start + 'T00:00:00');
+        const endDate = end ? new Date(end + 'T00:00:00') : new Date(startDate);
+        
+        if (endDate < startDate) {
+            alert('A Data Fim deve ser maior ou igual à Data Início.');
+            return;
+        }
+
+        let current = new Date(startDate);
+        let maxId = state.events.length > 0 ? Math.max(...state.events.map(ev => ev.id)) : 0;
+
+        while (current <= endDate) {
+            state.events.push({
+                id: ++maxId,
+                date: formatDateStr(current),
+                title: title,
+                description: desc
+            });
+            current.setDate(current.getDate() + 1);
+        }
+
+        renderDayEventsList();
+        renderCalendar();
+        
+        // Reset form but keep section open
+        document.getElementById('day-add-event-form').reset();
+    };
+
+    // --- Settings Modal Logic ---
+    
+    function renderRulesList() {
+        const container = document.getElementById('rules-list');
+        if (state.config.fixedRules.length === 0) {
+            container.innerHTML = `<p class="text-gray-400 text-sm text-center">Nenhuma regra fixa definida.</p>`;
+            return;
+        }
+
+        const daysMap = {1: 'Segunda', 2: 'Terça', 3: 'Quarta', 4: 'Quinta', 5: 'Sexta'};
+        container.innerHTML = state.config.fixedRules.map((r, idx) => `
+            <div class="flex items-center justify-between bg-white p-3 border border-gray-200 rounded-lg shadow-sm">
+                <div>
+                    <span class="font-semibold text-sm text-gray-800">${daysMap[r.dayOfWeek]}</span>
+                    <span class="text-xs ml-2 px-2 py-0.5 rounded-full ${r.type === 'Com Filhos' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}">${r.type}</span>
+                    ${r.desc ? `<div class="text-xs text-gray-500 mt-0.5">${r.desc}</div>` : ''}
+                </div>
+                <button onclick="window.calendar.removeRule(${idx})" class="text-red-500 hover:text-red-700 p-1">
+                    <i class="ph ph-trash"></i>
+                </button>
+            </div>
+        `).join('');
+    }
+
+    btnConfig.onclick = () => {
+        renderRulesList();
+        settingsModal.classList.remove('hidden');
+    };
+
+    document.getElementById('btn-close-settings').onclick = () => settingsModal.classList.add('hidden');
+    document.getElementById('settings-modal-overlay').onclick = () => settingsModal.classList.add('hidden');
+
+    document.getElementById('btn-add-rule').onclick = () => {
+        const day = parseInt(document.getElementById('rule-day').value);
+        const type = document.getElementById('rule-type').value;
+        const desc = document.getElementById('rule-desc').value.trim();
+
+        // remove existing rule for this day
+        state.config.fixedRules = state.config.fixedRules.filter(r => r.dayOfWeek !== day);
+        
+        state.config.fixedRules.push({ dayOfWeek: day, type, desc });
+        state.config.fixedRules.sort((a,b) => a.dayOfWeek - b.dayOfWeek);
+        
+        document.getElementById('rule-desc').value = '';
+        renderRulesList();
+        renderCalendar(); // live update
+    };
+
+    window.calendar = {
+        exportEvent: (eventId) => {
+            const evt = state.events.find(e => e.id === eventId);
+            if (!evt) return;
+            const dateObj = new Date(evt.date);
+            const dateStr = dateObj.toISOString().replace(/-/g, '').split('T')[0];
+            const endDateObj = new Date(dateObj);
+            endDateObj.setDate(endDateObj.getDate() + 1);
+            const endDateStr = endDateObj.toISOString().replace(/-/g, '').split('T')[0];
+
+            const icsContent = [
+                'BEGIN:VCALENDAR',
+                'VERSION:2.0',
+                'PRODID:-//Agenda Mel 2026//PT',
+                'BEGIN:VEVENT',
+                `DTSTART;VALUE=DATE:${dateStr}`,
+                `DTEND;VALUE=DATE:${endDateStr}`,
+                `SUMMARY:${evt.title}`,
+                `DESCRIPTION:${evt.description || ''}`,
+                'END:VEVENT',
+                'END:VCALENDAR'
+            ].join('\r\n');
+
+            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `evento_${evt.title.replace(/\s+/g, '_')}.ics`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        },
+        removeRule: (idx) => {
+            state.config.fixedRules.splice(idx, 1);
+            renderRulesList();
+            renderCalendar();
+        }
+    };
+
+    // --- Search & Filters ---
+    btnToggleFilters.onclick = () => {
+        filtersPanel.classList.toggle('hidden');
+    };
+
+    const updateSearch = () => {
+        state.search.query = searchInput.value.trim();
+        state.search.start = filterStart.value;
+        state.search.end = filterEnd.value;
+        renderCalendar();
+    };
+
+    searchInput.addEventListener('input', updateSearch);
+    filterStart.addEventListener('change', updateSearch);
+    filterEnd.addEventListener('change', updateSearch);
+
+    // --- Init ---
+    btnToday.addEventListener('click', () => {
+        const todayStr = getTodayStr();
+        const el = document.getElementById(`day-${todayStr}`);
+        if (el) {
+            const offsetPosition = el.getBoundingClientRect().top + window.pageYOffset - 120;
+            window.scrollTo({ top: offsetPosition, behavior: "smooth" });
+            el.classList.add('ring-4', 'ring-indigo-300', 'ring-offset-2', 'transition-all');
+            setTimeout(() => el.classList.remove('ring-4', 'ring-indigo-300', 'ring-offset-2'), 1500);
+        }
+    });
 
     async function initialize() {
         loadingIndicator.classList.remove('hidden');
         try {
             state.events = await window.api.fetchEvents();
+            
+            // Try loading rules from localStorage as fallback
+            const savedRules = localStorage.getItem('melConfigRules');
+            if(savedRules) state.config.fixedRules = JSON.parse(savedRules);
+
             state.isReady = true;
             renderCalendar();
-            scrollToToday(false); // don't smooth scroll on initial load
         } catch (error) {
             rootEl.innerHTML = `<div class="p-8 text-center text-red-500">Erro ao carregar eventos. Verifique o console.</div>`;
         } finally {
             loadingIndicator.classList.add('hidden');
         }
-    }
-
-    function scrollToToday(smooth = true) {
-        const todayStr = getTodayStr();
-        const el = document.getElementById(`day-${todayStr}`);
-        if (el) {
-            // Adjust offset for fixed header
-            const headerOffset = 120;
-            const elementPosition = el.getBoundingClientRect().top;
-            const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-  
-            window.scrollTo({
-                 top: offsetPosition,
-                 behavior: smooth ? "smooth" : "auto"
-            });
-            
-            // Add a brief highlight flash
-            el.classList.add('ring-4', 'ring-indigo-300', 'ring-offset-2', 'transition-all', 'duration-500');
-            setTimeout(() => {
-                el.classList.remove('ring-4', 'ring-indigo-300', 'ring-offset-2');
-            }, 1500);
-        }
-    }
-
-    function exportEventToICS(eventId) {
-        const evt = state.events.find(e => e.id === eventId);
-        if (!evt) return;
-
-        // Simple ICS generation
-        const dateObj = new Date(evt.date);
-        // Format: YYYYMMDD
-        const dateStr = dateObj.toISOString().replace(/-/g, '').split('T')[0];
         
-        // Add one day for end date since it's an all-day event
-        const endDateObj = new Date(dateObj);
-        endDateObj.setDate(endDateObj.getDate() + 1);
-        const endDateStr = endDateObj.toISOString().replace(/-/g, '').split('T')[0];
-
-        const icsContent = [
-            'BEGIN:VCALENDAR',
-            'VERSION:2.0',
-            'PRODID:-//Agenda Mel 2026//PT',
-            'BEGIN:VEVENT',
-            `DTSTART;VALUE=DATE:${dateStr}`,
-            `DTEND;VALUE=DATE:${endDateStr}`,
-            `SUMMARY:${evt.title}`,
-            `DESCRIPTION:${evt.description || ''}`,
-            'END:VEVENT',
-            'END:VCALENDAR'
-        ].join('\r\n');
-
-        const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `evento_${evt.title.replace(/\s+/g, '_')}.ics`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        // Save to localStorage when changed
+        setInterval(() => {
+            localStorage.setItem('melConfigRules', JSON.stringify(state.config.fixedRules));
+        }, 5000);
     }
 
-    // --- Event Listeners ---
-
-    searchInput.addEventListener('input', (e) => {
-        state.searchQuery = e.target.value.trim();
-        renderCalendar();
-    });
-
-    btnToday.addEventListener('click', () => {
-        scrollToToday(true);
-    });
-
-    // --- Add Event Modal Logic ---
-    const btnAddEvent = document.getElementById('btn-add-event');
-    const modal = document.getElementById('add-event-modal');
-    const btnCancelEvent = document.getElementById('btn-cancel-event');
-    const btnSaveEvent = document.getElementById('btn-save-event');
-    const form = document.getElementById('add-event-form');
-
-    function openModal() {
-        modal.classList.remove('hidden');
-        if (!document.getElementById('event-start').value) {
-            document.getElementById('event-start').value = getTodayStr();
-        }
-    }
-
-    function closeModal() {
-        modal.classList.add('hidden');
-        form.reset();
-    }
-
-    if (btnAddEvent) btnAddEvent.addEventListener('click', openModal);
-    if (btnCancelEvent) btnCancelEvent.addEventListener('click', closeModal);
-    
-    const overlay = document.getElementById('modal-overlay');
-    if (overlay) overlay.addEventListener('click', closeModal);
-
-    if (btnSaveEvent) {
-        btnSaveEvent.addEventListener('click', () => {
-            const title = document.getElementById('event-title').value.trim();
-            const desc = document.getElementById('event-desc').value.trim();
-            const start = document.getElementById('event-start').value;
-            const end = document.getElementById('event-end').value;
-
-            if (!title || !start) {
-                alert('Título e Data Início são obrigatórios.');
-                return;
-            }
-
-            // Parse dates ignoring timezones to prevent day-shifting
-            const startDate = new Date(start + 'T00:00:00');
-            const endDate = end ? new Date(end + 'T00:00:00') : new Date(startDate);
-            
-            if (endDate < startDate) {
-                alert('A Data Fim deve ser maior ou igual à Data Início.');
-                return;
-            }
-
-            // Create events for each day in the range
-            let current = new Date(startDate);
-            let maxId = state.events.length > 0 ? Math.max(...state.events.map(e => e.id)) : 0;
-
-            while (current <= endDate) {
-                state.events.push({
-                    id: ++maxId,
-                    date: formatDateStr(current),
-                    title: title,
-                    description: desc
-                });
-                current.setDate(current.getDate() + 1);
-            }
-
-            // Note: Currently saving locally to state. To persist, add API call here.
-            
-            renderCalendar();
-            closeModal();
-            
-            // Scroll to the first day of the new event
-            setTimeout(() => {
-                const el = document.getElementById(`day-${start}`);
-                if (el) {
-                    const headerOffset = 120;
-                    const elementPosition = el.getBoundingClientRect().top;
-                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-                    window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
-                    
-                    el.classList.add('ring-4', 'ring-violet-300', 'ring-offset-2', 'transition-all', 'duration-500');
-                    setTimeout(() => el.classList.remove('ring-4', 'ring-violet-300', 'ring-offset-2'), 1500);
-                }
-            }, 100);
-        });
-    }
-
-    // Expose export function globally
-    window.calendar = {
-        exportEvent: exportEventToICS
-    };
-
-    // --- Boot ---
     initialize();
 });

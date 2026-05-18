@@ -5,11 +5,18 @@ body {
 
 /* Card base styling */
 .calendar-day {
-    min-height: 120px;
+    min-height: 100px;
     transition: all 0.2s ease-in-out;
+    cursor: pointer;
 }
 
-.calendar-day:hover {
+@media (min-width: 640px) {
+    .calendar-day {
+        min-height: 120px;
+    }
+}
+
+.calendar-day:not(.is-past):hover {
     box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
     transform: translateY(-2px);
     z-index: 10;
@@ -19,75 +26,38 @@ body {
 .day-today {
     border-color: #eab308 !important; /* Yellow-500 */
     border-width: 2px !important;
-    background-color: #fefce8 !important; /* Yellow-50 */
 }
 
 .day-today .date-number {
     background-color: #eab308;
     color: white;
     border-radius: 9999px;
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-/* Weekend labels */
-.weekend-label {
-    font-size: 0.5rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    padding: 2px 3px;
-    border-radius: 9999px;
-    display: inline-block;
-    margin-bottom: 4px;
-    line-height: 1.1;
-    text-align: center;
-}
-
 @media (min-width: 640px) {
-    .weekend-label {
-        font-size: 0.65rem;
-        padding: 2px 6px;
-        letter-spacing: 0.05em;
+    .day-today .date-number {
+        width: 28px;
+        height: 28px;
     }
 }
 
-.label-com-filhos {
-    background-color: #dbeafe; /* Blue-100 */
-    color: #1d4ed8; /* Blue-700 */
-    border: 1px solid #bfdbfe;
+/* Background colors for status */
+.bg-com-filhos {
+    background-color: #eff6ff !important; /* Blue-50 */
 }
 
-.label-sem-filhos {
-    background-color: #fce7f3; /* Pink-100 */
-    color: #be185d; /* Pink-700 */
-    border: 1px solid #fbcfe8;
+.bg-sem-filhos {
+    background-color: #fdf2f8 !important; /* Pink-50 */
 }
 
-/* Event styles */
-.event-item {
-    font-size: 0.75rem;
-    padding: 4px 6px;
-    border-radius: 4px;
-    margin-bottom: 4px;
-    background-color: #f3f4f6;
-    border-left: 3px solid #9ca3af;
-    cursor: pointer;
-    transition: all 0.2s;
-    word-wrap: break-word;
-    position: relative;
-    group: hover;
-}
-
-.event-item:hover {
-    background-color: #e5e7eb;
-}
-
-.event-has-appointment {
-    border-left-color: #6366f1; /* Indigo-500 */
-    background-color: #e0e7ff; /* Indigo-50 */
+.is-past {
+    background-color: #f3f4f6 !important; /* Gray-100 */
+    opacity: 0.6;
 }
 
 /* Search highlight */
