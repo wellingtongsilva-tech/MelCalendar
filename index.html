@@ -23,29 +23,35 @@
                     </h1>
                 </div>
 
-                <div class="flex-1 max-w-xl flex gap-2 relative">
-                    <div class="relative flex-1">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i class="ph ph-magnifying-glass text-gray-400 group-focus-within:text-indigo-500 transition-colors"></i>
-                        </div>
-                        <input type="text" id="search-input" 
-                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-full leading-5 bg-gray-50 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white transition-all text-sm" 
-                            placeholder="Buscar eventos...">
-                    </div>
-                    <button id="btn-toggle-filters" class="p-2 border border-gray-300 rounded-full bg-white hover:bg-gray-50 text-gray-600 focus:outline-none transition-colors" title="Filtros">
-                        <i class="ph ph-faders text-lg"></i>
+                <div class="flex-1 flex justify-end gap-2 relative">
+                    <button id="btn-toggle-filters" class="p-2 border border-gray-300 rounded-full bg-white hover:bg-gray-50 text-gray-600 focus:outline-none transition-colors" title="Buscar / Filtros">
+                        <i class="ph ph-magnifying-glass text-lg"></i>
                     </button>
                     <!-- Search Filters Dropdown -->
-                    <div id="search-filters-panel" class="hidden absolute top-12 right-0 w-72 bg-white border border-gray-200 rounded-lg shadow-xl p-4 z-50">
-                        <h4 class="font-semibold text-sm mb-3">Filtros de Data</h4>
+                    <div id="search-filters-panel" class="hidden absolute top-12 right-0 w-80 bg-white border border-gray-200 rounded-lg shadow-xl p-4 z-50">
+                        <h4 class="font-semibold text-sm mb-3">Busca e Filtros</h4>
                         <div class="space-y-3">
                             <div>
-                                <label class="block text-xs text-gray-500 mb-1">A partir de</label>
-                                <input type="date" id="filter-date-start" class="w-full border border-gray-300 rounded-md py-1.5 px-2 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                <label class="block text-xs text-gray-500 mb-1">Palavra-chave</label>
+                                <input type="text" id="search-input" placeholder="Título ou descrição..." class="w-full border border-gray-300 rounded-md py-1.5 px-2 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1">A partir de</label>
+                                    <input type="date" id="filter-date-start" class="w-full border border-gray-300 rounded-md py-1.5 px-2 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1">Até</label>
+                                    <input type="date" id="filter-date-end" class="w-full border border-gray-300 rounded-md py-1.5 px-2 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
                             </div>
                             <div>
-                                <label class="block text-xs text-gray-500 mb-1">Até</label>
-                                <input type="date" id="filter-date-end" class="w-full border border-gray-300 rounded-md py-1.5 px-2 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                <label class="block text-xs text-gray-500 mb-1">Status da Escala</label>
+                                <select id="filter-status" class="w-full border border-gray-300 rounded-md py-1.5 px-2 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="">Todos</option>
+                                    <option value="Com Filhos">Apenas dias Com Filhos</option>
+                                    <option value="Sem Filhos">Apenas dias Sem Filhos</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -148,28 +154,49 @@
                 </div>
                 
                 <div class="p-6 overflow-y-auto flex-1 space-y-6">
-                    <p class="text-sm text-gray-500">Defina dias fixos na semana para ficar com ou sem os filhos. Exemplo: "Toda Quarta à noite sem filhos". Aos finais de semana a escala quinzenal baseada na data âncora (09/05/2026) prevalece e essas regras se somam a ela.</p>
+                    <p class="text-sm text-gray-500">Defina dias e repetições para a sua escala (ex: "Sábado Com Filhos, Quinzenal, a partir de hoje"). Você tem controle total sobre quais dias são com ou sem filhos e com que frequência eles se repetem.</p>
                     
                     <div id="rules-list" class="space-y-3">
                         <!-- Rules populated here -->
                     </div>
 
                     <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 mt-4">
-                        <h4 class="font-medium text-gray-900 mb-3 text-sm">Nova Regra Fixa</h4>
+                        <h4 class="font-medium text-gray-900 mb-3 text-sm">Nova Regra de Escala</h4>
                         <div class="grid grid-cols-2 gap-3 mb-3">
-                            <select id="rule-day" class="border border-gray-300 rounded-lg py-2 px-3 text-sm focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="1">Segunda-feira</option>
-                                <option value="2">Terça-feira</option>
-                                <option value="3">Quarta-feira</option>
-                                <option value="4">Quinta-feira</option>
-                                <option value="5">Sexta-feira</option>
-                            </select>
-                            <select id="rule-type" class="border border-gray-300 rounded-lg py-2 px-3 text-sm focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="Com Filhos">Com Filhos</option>
-                                <option value="Sem Filhos">Sem Filhos</option>
-                            </select>
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">Dia da Semana</label>
+                                <select id="rule-day" class="w-full border border-gray-300 rounded-lg py-2 px-3 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="0">Domingo</option>
+                                    <option value="1">Segunda-feira</option>
+                                    <option value="2">Terça-feira</option>
+                                    <option value="3">Quarta-feira</option>
+                                    <option value="4">Quinta-feira</option>
+                                    <option value="5">Sexta-feira</option>
+                                    <option value="6">Sábado</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">Status</label>
+                                <select id="rule-type" class="w-full border border-gray-300 rounded-lg py-2 px-3 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="Com Filhos">Com Filhos</option>
+                                    <option value="Sem Filhos">Sem Filhos</option>
+                                </select>
+                            </div>
                         </div>
-                        <input type="text" id="rule-desc" placeholder="Ex: À noite" class="w-full border border-gray-300 rounded-lg py-2 px-3 text-sm mb-3 focus:ring-indigo-500 focus:border-indigo-500">
+                        <div class="grid grid-cols-2 gap-3 mb-3">
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">Repetição</label>
+                                <select id="rule-frequency" class="w-full border border-gray-300 rounded-lg py-2 px-3 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="semanal">Toda Semana</option>
+                                    <option value="quinzenal">A cada 15 dias</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">Data de Início</label>
+                                <input type="date" id="rule-start" required class="w-full border border-gray-300 rounded-lg py-2 px-3 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                        </div>
+                        <input type="text" id="rule-desc" placeholder="Descrição (Ex: À noite)" class="w-full border border-gray-300 rounded-lg py-2 px-3 text-sm mb-3 focus:ring-indigo-500 focus:border-indigo-500">
                         <button type="button" id="btn-add-rule" class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none transition-colors">
                             Adicionar Regra
                         </button>

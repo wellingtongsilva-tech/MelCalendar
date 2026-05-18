@@ -5,18 +5,18 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- Configuration & State ---
     const YEAR = 2026;
-    const ANCHOR_DATE = new Date(YEAR, 4, 9); // 2026-05-09
     const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
     
     let state = {
         events: [],
         config: {
-            fixedRules: [] // Array of { dayOfWeek: Number, type: 'Com Filhos'|'Sem Filhos', desc: String }
+            fixedRules: [] // Array of { dayOfWeek, type, frequency, start, desc }
         },
         search: {
             query: '',
             start: '',
-            end: ''
+            end: '',
+            status: ''
         },
         isReady: false,
         selectedDate: null
@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('search-input');
     const filterStart = document.getElementById('filter-date-start');
     const filterEnd = document.getElementById('filter-date-end');
+    const filterStatus = document.getElementById('filter-status');
     const btnToggleFilters = document.getElementById('btn-toggle-filters');
     const filtersPanel = document.getElementById('search-filters-panel');
     const btnToday = document.getElementById('btn-today');
@@ -54,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (currentDate.getFullYear() > YEAR && currentWeek.length === 0) break;
 
             const dateStr = formatDateStr(currentDate);
-            const dayOfWeek = currentDate.getDay(); // 0 is Sunday, 1 is Monday...
+            const dayOfWeek = currentDate.getDay(); 
 
             const dayInfo = {
                 date: new Date(currentDate),
@@ -78,27 +79,34 @@ document.addEventListener('DOMContentLoaded', () => {
         return weeks;
     }
 
-    function calculateDayType(date, dayOfWeek) {
-        // 1. Check fixed rules
-        const rule = state.config.fixedRules.find(r => r.dayOfWeek == dayOfWeek);
-        if (rule) return rule.type;
-
-        // 2. If weekend, use alternating logic
-        if (dayOfWeek === 0 || dayOfWeek === 6) {
-            const d = new Date(date);
-            if (d.getDay() === 0) d.setDate(d.getDate() - 1); 
+    function calculateDayType(dateObj, dayOfWeek) {
+        let matchedType = null;
+        const dateStr = formatDateStr(dateObj);
+        
+        const rulesForDay = state.config.fixedRules.filter(r => r.dayOfWeek == dayOfWeek);
+        
+        for (const rule of rulesForDay) {
+            if (dateStr < rule.start) continue; 
             
-            const anchorSaturday = new Date(ANCHOR_DATE);
-            d.setHours(0,0,0,0);
-            anchorSaturday.setHours(0,0,0,0);
-            
-            const diffMs = d.getTime() - anchorSaturday.getTime();
-            const diffWeeks = Math.round(diffMs / MS_PER_WEEK);
-            
-            return (diffWeeks % 2 === 0) ? 'Com Filhos' : 'Sem Filhos';
+            if (rule.frequency === 'semanal') {
+                matchedType = rule.type;
+                // Last matched rule wins or first? Let's say last matched overrides.
+            } else if (rule.frequency === 'quinzenal') {
+                const ruleStartDate = new Date(rule.start + 'T00:00:00');
+                const d = new Date(dateObj);
+                d.setHours(0,0,0,0);
+                ruleStartDate.setHours(0,0,0,0);
+                
+                const diffMs = d.getTime() - ruleStartDate.getTime();
+                const diffWeeks = Math.round(diffMs / MS_PER_WEEK);
+                
+                if (diffWeeks % 2 === 0) {
+                    matchedType = rule.type;
+                }
+            }
         }
-
-        return null;
+        
+        return matchedType;
     }
 
     function formatDateStr(date) {
@@ -146,7 +154,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Filter events
                 let dayEvents = state.events.filter(e => e.date === day.dateStr);
                 
-                // Apply search
                 let filteredEvents = dayEvents.filter(e => {
                     let match = true;
                     if (state.search.query) {
@@ -162,7 +169,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     return match;
                 });
 
-                const dimDueToSearch = (state.search.query || state.search.start || state.search.end) && filteredEvents.length === 0;
+                // Status Filter logic
+                let dayHiddenByStatus = false;
+                if (state.search.status && day.dayType !== state.search.status) {
+                    dayHiddenByStatus = true;
+                }
+
+                const dimDueToSearch = ((state.search.query || state.search.start || state.search.end) && filteredEvents.length === 0) || dayHiddenByStatus;
 
                 const dayCell = document.createElement('div');
                 
@@ -175,14 +188,11 @@ document.addEventListener('DOMContentLoaded', () => {
                                      ${bgColorClass}
                                      ${isDimmed ? 'opacity-40 grayscale text-gray-400' : ''} 
                                      ${isToday ? 'day-today' : ''}
-                                     ${dimDueToSearch ? 'opacity-30' : 'opacity-100'}`;
+                                     ${dimDueToSearch ? 'opacity-20 grayscale' : 'opacity-100'}`;
                 
                 dayCell.id = `day-${day.dateStr}`;
-                
-                // Clicking opens day details
                 dayCell.onclick = () => openDayModal(day);
 
-                // Top: Date number
                 let dateNumHtml = `<div class="date-number text-xs sm:text-sm font-semibold ${isDimmed ? 'text-gray-400' : 'text-gray-700'}">${day.date.getDate()}</div>`;
                 if (day.date.getDate() === 1 && !isDimmed) {
                     dateNumHtml = `<div class="date-number text-xs sm:text-sm font-semibold text-gray-700">${day.date.getDate()} ${monthNames[day.date.getMonth()].substr(0,3)}</div>`;
@@ -190,7 +200,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const headerHtml = `<div>${dateNumHtml}</div>`;
 
-                // Bottom: Badge
                 let badgeHtml = '';
                 if (filteredEvents.length > 0) {
                     badgeHtml = `<div class="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 bg-indigo-500 text-white rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-[10px] sm:text-xs shadow-sm font-bold">${filteredEvents.length}</div>`;
@@ -209,11 +218,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function openDayModal(day) {
         state.selectedDate = day.dateStr;
         
-        // Date formatting for title
         const dObj = new Date(day.date.getTime() + Math.abs(day.date.getTimezoneOffset()*60000));
         document.getElementById('day-modal-title').textContent = dObj.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
-        
-        // Form field
         document.getElementById('day-event-date').value = day.dateStr;
         
         if (day.isPast) {
@@ -282,8 +288,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         renderDayEventsList();
         renderCalendar();
-        
-        // Reset form but keep section open
         document.getElementById('day-add-event-form').reset();
     };
 
@@ -292,26 +296,31 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderRulesList() {
         const container = document.getElementById('rules-list');
         if (state.config.fixedRules.length === 0) {
-            container.innerHTML = `<p class="text-gray-400 text-sm text-center">Nenhuma regra fixa definida.</p>`;
+            container.innerHTML = `<p class="text-gray-400 text-sm text-center">Nenhuma regra de escala definida.</p>`;
             return;
         }
 
-        const daysMap = {1: 'Segunda', 2: 'Terça', 3: 'Quarta', 4: 'Quinta', 5: 'Sexta'};
+        const daysMap = {0: 'Domingo', 1: 'Segunda', 2: 'Terça', 3: 'Quarta', 4: 'Quinta', 5: 'Sexta', 6: 'Sábado'};
         container.innerHTML = state.config.fixedRules.map((r, idx) => `
             <div class="flex items-center justify-between bg-white p-3 border border-gray-200 rounded-lg shadow-sm">
                 <div>
-                    <span class="font-semibold text-sm text-gray-800">${daysMap[r.dayOfWeek]}</span>
-                    <span class="text-xs ml-2 px-2 py-0.5 rounded-full ${r.type === 'Com Filhos' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}">${r.type}</span>
-                    ${r.desc ? `<div class="text-xs text-gray-500 mt-0.5">${r.desc}</div>` : ''}
+                    <div class="font-semibold text-sm text-gray-800">${daysMap[r.dayOfWeek]} <span class="text-xs text-gray-400 font-normal">(${r.frequency})</span></div>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="text-xs px-2 py-0.5 rounded-full ${r.type === 'Com Filhos' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}">${r.type}</span>
+                        <span class="text-xs text-gray-500">Início: ${r.start.split('-').reverse().join('/')}</span>
+                    </div>
+                    ${r.desc ? `<div class="text-xs text-gray-500 mt-1 italic">${r.desc}</div>` : ''}
                 </div>
-                <button onclick="window.calendar.removeRule(${idx})" class="text-red-500 hover:text-red-700 p-1">
-                    <i class="ph ph-trash"></i>
+                <button onclick="window.calendar.removeRule(${idx})" class="text-red-500 hover:text-red-700 p-2">
+                    <i class="ph ph-trash text-lg"></i>
                 </button>
             </div>
         `).join('');
     }
 
     btnConfig.onclick = () => {
+        // Set default start date to today in the form
+        document.getElementById('rule-start').value = getTodayStr();
         renderRulesList();
         settingsModal.classList.remove('hidden');
     };
@@ -322,17 +331,25 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-add-rule').onclick = () => {
         const day = parseInt(document.getElementById('rule-day').value);
         const type = document.getElementById('rule-type').value;
+        const frequency = document.getElementById('rule-frequency').value;
+        const start = document.getElementById('rule-start').value;
         const desc = document.getElementById('rule-desc').value.trim();
 
-        // remove existing rule for this day
-        state.config.fixedRules = state.config.fixedRules.filter(r => r.dayOfWeek !== day);
-        
-        state.config.fixedRules.push({ dayOfWeek: day, type, desc });
-        state.config.fixedRules.sort((a,b) => a.dayOfWeek - b.dayOfWeek);
+        if (!start) {
+            alert("A Data de Início é obrigatória para calcular a escala.");
+            return;
+        }
+
+        // We can have multiple rules now, just append it
+        state.config.fixedRules.push({ dayOfWeek: day, type, frequency, start, desc });
+        state.config.fixedRules.sort((a,b) => {
+            if(a.dayOfWeek !== b.dayOfWeek) return a.dayOfWeek - b.dayOfWeek;
+            return a.start.localeCompare(b.start);
+        });
         
         document.getElementById('rule-desc').value = '';
         renderRulesList();
-        renderCalendar(); // live update
+        renderCalendar();
     };
 
     window.calendar = {
@@ -384,12 +401,14 @@ document.addEventListener('DOMContentLoaded', () => {
         state.search.query = searchInput.value.trim();
         state.search.start = filterStart.value;
         state.search.end = filterEnd.value;
+        state.search.status = filterStatus.value;
         renderCalendar();
     };
 
     searchInput.addEventListener('input', updateSearch);
     filterStart.addEventListener('change', updateSearch);
     filterEnd.addEventListener('change', updateSearch);
+    filterStatus.addEventListener('change', updateSearch);
 
     // --- Init ---
     btnToday.addEventListener('click', () => {
@@ -408,9 +427,18 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             state.events = await window.api.fetchEvents();
             
-            // Try loading rules from localStorage as fallback
-            const savedRules = localStorage.getItem('melConfigRules');
-            if(savedRules) state.config.fixedRules = JSON.parse(savedRules);
+            const savedRules = localStorage.getItem('melConfigRules2');
+            if(savedRules) {
+                state.config.fixedRules = JSON.parse(savedRules);
+            } else {
+                // Seed standard alternating weekends
+                state.config.fixedRules = [
+                    { dayOfWeek: 6, type: 'Com Filhos', frequency: 'quinzenal', start: '2026-05-09', desc: 'Fim de semana alternado' },
+                    { dayOfWeek: 0, type: 'Com Filhos', frequency: 'quinzenal', start: '2026-05-10', desc: 'Fim de semana alternado' },
+                    { dayOfWeek: 6, type: 'Sem Filhos', frequency: 'quinzenal', start: '2026-05-16', desc: 'Fim de semana alternado' },
+                    { dayOfWeek: 0, type: 'Sem Filhos', frequency: 'quinzenal', start: '2026-05-17', desc: 'Fim de semana alternado' }
+                ];
+            }
 
             state.isReady = true;
             renderCalendar();
@@ -420,10 +448,9 @@ document.addEventListener('DOMContentLoaded', () => {
             loadingIndicator.classList.add('hidden');
         }
         
-        // Save to localStorage when changed
         setInterval(() => {
-            localStorage.setItem('melConfigRules', JSON.stringify(state.config.fixedRules));
-        }, 5000);
+            localStorage.setItem('melConfigRules2', JSON.stringify(state.config.fixedRules));
+        }, 2000);
     }
 
     initialize();
