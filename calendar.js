@@ -307,6 +307,87 @@ document.addEventListener('DOMContentLoaded', () => {
         scrollToToday(true);
     });
 
+    // --- Add Event Modal Logic ---
+    const btnAddEvent = document.getElementById('btn-add-event');
+    const modal = document.getElementById('add-event-modal');
+    const btnCancelEvent = document.getElementById('btn-cancel-event');
+    const btnSaveEvent = document.getElementById('btn-save-event');
+    const form = document.getElementById('add-event-form');
+
+    function openModal() {
+        modal.classList.remove('hidden');
+        if (!document.getElementById('event-start').value) {
+            document.getElementById('event-start').value = getTodayStr();
+        }
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+        form.reset();
+    }
+
+    if (btnAddEvent) btnAddEvent.addEventListener('click', openModal);
+    if (btnCancelEvent) btnCancelEvent.addEventListener('click', closeModal);
+    
+    const overlay = document.getElementById('modal-overlay');
+    if (overlay) overlay.addEventListener('click', closeModal);
+
+    if (btnSaveEvent) {
+        btnSaveEvent.addEventListener('click', () => {
+            const title = document.getElementById('event-title').value.trim();
+            const desc = document.getElementById('event-desc').value.trim();
+            const start = document.getElementById('event-start').value;
+            const end = document.getElementById('event-end').value;
+
+            if (!title || !start) {
+                alert('Título e Data Início são obrigatórios.');
+                return;
+            }
+
+            // Parse dates ignoring timezones to prevent day-shifting
+            const startDate = new Date(start + 'T00:00:00');
+            const endDate = end ? new Date(end + 'T00:00:00') : new Date(startDate);
+            
+            if (endDate < startDate) {
+                alert('A Data Fim deve ser maior ou igual à Data Início.');
+                return;
+            }
+
+            // Create events for each day in the range
+            let current = new Date(startDate);
+            let maxId = state.events.length > 0 ? Math.max(...state.events.map(e => e.id)) : 0;
+
+            while (current <= endDate) {
+                state.events.push({
+                    id: ++maxId,
+                    date: formatDateStr(current),
+                    title: title,
+                    description: desc
+                });
+                current.setDate(current.getDate() + 1);
+            }
+
+            // Note: Currently saving locally to state. To persist, add API call here.
+            
+            renderCalendar();
+            closeModal();
+            
+            // Scroll to the first day of the new event
+            setTimeout(() => {
+                const el = document.getElementById(`day-${start}`);
+                if (el) {
+                    const headerOffset = 120;
+                    const elementPosition = el.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                    window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+                    
+                    el.classList.add('ring-4', 'ring-violet-300', 'ring-offset-2', 'transition-all', 'duration-500');
+                    setTimeout(() => el.classList.remove('ring-4', 'ring-violet-300', 'ring-offset-2'), 1500);
+                }
+            }, 100);
+        });
+    }
+
     // Expose export function globally
     window.calendar = {
         exportEvent: exportEventToICS
