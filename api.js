@@ -37,7 +37,25 @@ async function fetchEvents(timeoutMs = 15000) {
         }
 
         const data = await response.json();
-        return data;
+        
+        // Transform GAS response into the expected events array
+        const events = [];
+        let idCounter = 1;
+        if (data && data.commitments) {
+            for (const [dateStr, dailyEvents] of Object.entries(data.commitments)) {
+                if (Array.isArray(dailyEvents)) {
+                    for (const evt of dailyEvents) {
+                        events.push({
+                            id: idCounter++,
+                            date: dateStr,
+                            title: evt.text || '',
+                            description: evt.time ? `Horário: ${evt.time}` : ''
+                        });
+                    }
+                }
+            }
+        }
+        return events;
 
         // Mock data for demonstration purposes since we don't have a real URL
         //return mockFetchData();
