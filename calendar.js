@@ -144,7 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const weekRow = document.createElement('div');
-            weekRow.className = 'grid grid-cols-7 gap-px bg-gray-200 border border-gray-200 rounded-lg overflow-hidden shadow-sm animate-fade-in calendar-grid';
+            weekRow.className = 'grid grid-cols-7 calendar-grid animate-fade-in mb-3';
             weekRow.style.animationDelay = `${(weekIndex % 10) * 20}ms`;
 
             week.forEach(day => {
@@ -184,25 +184,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 else if (day.dayType === 'Com Filhos') bgColorClass = 'bg-com-filhos';
                 else if (day.dayType === 'Sem Filhos') bgColorClass = 'bg-sem-filhos';
 
-                dayCell.className = `calendar-day relative p-1 sm:p-2 border-b border-r border-gray-100 last:border-r-0 flex flex-col justify-between
+                dayCell.className = `calendar-day relative p-1.5 sm:p-3 flex flex-col justify-between
                                      ${bgColorClass}
-                                     ${isDimmed ? 'opacity-40 grayscale text-gray-400' : ''} 
+                                     ${isDimmed ? 'opacity-40 grayscale text-slate-400' : ''} 
                                      ${isToday ? 'day-today' : ''}
                                      ${dimDueToSearch ? 'opacity-20 grayscale' : 'opacity-100'}`;
                 
                 dayCell.id = `day-${day.dateStr}`;
                 dayCell.onclick = () => openDayModal(day);
 
-                let dateNumHtml = `<div class="date-number text-xs sm:text-sm font-semibold ${isDimmed ? 'text-gray-400' : 'text-gray-700'}">${day.date.getDate()}</div>`;
+                let dateNumHtml = `<div class="date-number text-xs sm:text-sm font-bold ${isDimmed ? 'text-slate-400' : 'text-slate-700'}">${day.date.getDate()}</div>`;
                 if (day.date.getDate() === 1 && !isDimmed) {
-                    dateNumHtml = `<div class="date-number text-xs sm:text-sm font-semibold text-gray-700">${day.date.getDate()} ${monthNames[day.date.getMonth()].substr(0,3)}</div>`;
+                    dateNumHtml = `<div class="date-number text-xs sm:text-sm font-bold text-slate-700">${day.date.getDate()} ${monthNames[day.date.getMonth()].substr(0,3)}</div>`;
                 }
 
                 const headerHtml = `<div>${dateNumHtml}</div>`;
 
                 let badgeHtml = '';
                 if (filteredEvents.length > 0) {
-                    badgeHtml = `<div class="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 bg-indigo-500 text-white rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-[10px] sm:text-xs shadow-sm font-bold">${filteredEvents.length}</div>`;
+                    badgeHtml = `<div class="absolute bottom-2 right-2 event-badge rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-[10px] sm:text-xs font-bold">${filteredEvents.length}</div>`;
                 }
 
                 dayCell.innerHTML = headerHtml + badgeHtml;
@@ -238,18 +238,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const evts = state.events.filter(e => e.date === state.selectedDate);
         
         if (evts.length === 0) {
-            container.innerHTML = `<p class="text-gray-500 text-sm italic text-center py-4">Nenhum evento para esta data.</p>`;
+            container.innerHTML = `<p class="text-slate-400 text-sm font-medium text-center py-6">Nenhum evento para esta data.</p>`;
             return;
         }
 
         container.innerHTML = evts.map(evt => `
-            <div class="bg-gray-50 border border-gray-100 p-3 rounded-lg flex justify-between items-start group">
+            <div class="bg-white border border-slate-100 shadow-sm p-4 rounded-xl flex justify-between items-start group hover:border-indigo-200 transition-colors">
                 <div>
-                    <h5 class="font-semibold text-gray-800 text-sm">${evt.title}</h5>
-                    ${evt.description ? `<p class="text-xs text-gray-500 mt-1">${evt.description}</p>` : ''}
+                    <h5 class="font-bold text-slate-800 text-sm">${evt.title}</h5>
+                    ${evt.description ? `<p class="text-xs font-medium text-slate-500 mt-1.5 leading-relaxed">${evt.description}</p>` : ''}
                 </div>
-                <button onclick="window.calendar.exportEvent(${evt.id})" class="text-indigo-500 hover:text-indigo-700 p-1 bg-white rounded-md border border-indigo-100 shadow-sm" title="Exportar para agenda">
-                    <i class="ph ph-download-simple"></i>
+                <button onclick="window.calendar.exportEvent(${evt.id})" class="text-indigo-500 hover:text-white hover:bg-indigo-500 p-2 rounded-lg border border-indigo-100 transition-all" title="Exportar para agenda">
+                    <i class="ph ph-download-simple text-lg"></i>
                 </button>
             </div>
         `).join('');
@@ -296,22 +296,22 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderRulesList() {
         const container = document.getElementById('rules-list');
         if (state.config.fixedRules.length === 0) {
-            container.innerHTML = `<p class="text-gray-400 text-sm text-center">Nenhuma regra de escala definida.</p>`;
+            container.innerHTML = `<p class="text-slate-400 text-sm font-medium text-center py-4">Nenhuma regra de escala definida.</p>`;
             return;
         }
 
         const daysMap = {0: 'Domingo', 1: 'Segunda', 2: 'Terça', 3: 'Quarta', 4: 'Quinta', 5: 'Sexta', 6: 'Sábado'};
         container.innerHTML = state.config.fixedRules.map((r, idx) => `
-            <div class="flex items-center justify-between bg-white p-3 border border-gray-200 rounded-lg shadow-sm">
+            <div class="flex items-center justify-between bg-white p-4 border border-slate-100 rounded-xl shadow-sm hover:border-indigo-100 transition-colors">
                 <div>
-                    <div class="font-semibold text-sm text-gray-800">${daysMap[r.dayOfWeek]} <span class="text-xs text-gray-400 font-normal">(${r.frequency})</span></div>
-                    <div class="flex items-center gap-2 mt-1">
-                        <span class="text-xs px-2 py-0.5 rounded-full ${r.type === 'Com Filhos' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}">${r.type}</span>
-                        <span class="text-xs text-gray-500">Início: ${r.start.split('-').reverse().join('/')}</span>
+                    <div class="font-bold text-sm text-slate-800">${daysMap[r.dayOfWeek]} <span class="text-xs text-slate-400 font-medium ml-1">(${r.frequency})</span></div>
+                    <div class="flex items-center gap-2 mt-2">
+                        <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md ${r.type === 'Com Filhos' ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'}">${r.type}</span>
+                        <span class="text-xs font-semibold text-slate-500">Início: ${r.start.split('-').reverse().join('/')}</span>
                     </div>
-                    ${r.desc ? `<div class="text-xs text-gray-500 mt-1 italic">${r.desc}</div>` : ''}
+                    ${r.desc ? `<div class="text-xs font-medium text-slate-500 mt-2">${r.desc}</div>` : ''}
                 </div>
-                <button onclick="window.calendar.removeRule(${idx})" class="text-red-500 hover:text-red-700 p-2">
+                <button onclick="window.calendar.removeRule(${idx})" class="text-red-400 hover:text-white hover:bg-red-500 p-2 rounded-lg transition-colors border border-transparent hover:border-red-600">
                     <i class="ph ph-trash text-lg"></i>
                 </button>
             </div>
