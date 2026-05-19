@@ -873,6 +873,20 @@ document.addEventListener('DOMContentLoaded', () => {
         filterShowPastNormal.addEventListener('change', updateSearch);
     }
 
+    const btnClearFilters = document.getElementById('btn-clear-filters');
+    if (btnClearFilters) {
+        btnClearFilters.addEventListener('click', () => {
+            searchInput.value = '';
+            filterStart.value = '';
+            filterEnd.value = '';
+            filterStatus.value = '';
+            if (filterHasEvents) filterHasEvents.checked = false;
+            if (filterShowPastNormal) filterShowPastNormal.checked = false;
+            updateSearch();
+            filtersPanel.classList.add('hidden');
+        });
+    }
+
     const btnExportAll = document.getElementById('btn-export-all');
     if (btnExportAll) {
         btnExportAll.addEventListener('click', () => {
