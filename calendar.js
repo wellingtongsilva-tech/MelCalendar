@@ -156,13 +156,68 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!state.isReady) return;
 
         const weeks = generateCalendarData();
+        
+        // Compute stats
+        const monthStats = Array.from({length: 12}, () => ({ comFilhos: 0, semFilhos: 0, indefinido: 0 }));
+        const yearStats = { comFilhos: 0, semFilhos: 0, indefinido: 0 };
+        
+        weeks.forEach(week => {
+            week.forEach(day => {
+                if (day.date.getFullYear() === YEAR) {
+                    const m = day.date.getMonth();
+                    if (day.dayType === 'Com Filhos') { monthStats[m].comFilhos++; yearStats.comFilhos++; }
+                    else if (day.dayType === 'Sem Filhos') { monthStats[m].semFilhos++; yearStats.semFilhos++; }
+                    else { monthStats[m].indefinido++; yearStats.indefinido++; }
+                }
+            });
+        });
+
         let currentMonth = -1;
         let currentMonthContainer = null;
         let currentMonthContent = null;
+        let currentMonthCalWrapper = null;
         const currentRealMonth = new Date().getMonth();
         const currentRealYear = new Date().getFullYear();
         const todayStr = getTodayStr();
         const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+        // Guardar as instâncias de gráficos para poder alterar o tipo depois
+        const chartInstances = {};
+
+        function renderChart(canvasId, stats, type = 'pie') {
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return null;
+            
+            if (chartInstances[canvasId]) {
+                chartInstances[canvasId].destroy();
+            }
+            
+            const data = {
+                labels: ['Com Filhos', 'Sem Filhos', 'Indefinido'],
+                datasets: [{
+                    data: [stats.comFilhos, stats.semFilhos, stats.indefinido],
+                    backgroundColor: ['#10b981', '#f97316', '#cbd5e1'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            };
+
+            const config = {
+                type: type,
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { font: { family: 'Plus Jakarta Sans', weight: 'bold' } } }
+                    }
+                }
+            };
+
+            const chart = new Chart(ctx, config);
+            chartInstances[canvasId] = chart;
+            return chart;
+        }
 
         weeks.forEach((week, weekIndex) => {
             const thursday = week[3].date;
@@ -174,32 +229,76 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const isPastMonth = (YEAR < currentRealYear) || (YEAR === currentRealYear && currentMonth < currentRealMonth);
                 const isOpen = !isPastMonth;
+                const defaultView = isPastMonth ? 'chart' : 'calendar';
                 
                 const sep = document.createElement('div');
-                sep.className = 'month-separator cursor-pointer transition-colors group';
+                sep.className = 'month-separator transition-colors group';
                 
                 sep.innerHTML = `
-                    <button type="button" class="flex items-center gap-2 cursor-pointer bg-white border border-slate-100 shadow-sm rounded-full px-5 py-1.5 hover:border-indigo-200 transition-colors z-10 text-sm sm:text-base font-bold text-slate-700 outline-none">
-                        ${monthNames[currentMonth]} ${YEAR}
-                        <i class="ph ph-caret-down text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}"></i>
-                    </button>
+                    <div class="flex items-center gap-3 bg-white border border-slate-100 shadow-sm rounded-full pl-5 pr-2 py-1.5 hover:border-indigo-200 transition-colors z-10 w-full justify-between sm:w-auto sm:justify-start">
+                        <div class="flex items-center gap-2 cursor-pointer font-bold text-slate-700 outline-none text-sm sm:text-base flex-1 accordion-toggle-area">
+                            ${monthNames[currentMonth]} ${YEAR}
+                            <i class="ph ph-caret-down text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}"></i>
+                        </div>
+                        
+                        <div class="flex items-center gap-1 bg-slate-50 p-1 rounded-full border border-slate-100">
+                            <button type="button" class="btn-view-cal flex items-center justify-center w-7 h-7 rounded-full transition-all ${defaultView === 'calendar' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400 hover:text-slate-600'}" title="Ver Calendário">
+                                <i class="ph ph-calendar-blank"></i>
+                            </button>
+                            <button type="button" class="btn-view-chart flex items-center justify-center w-7 h-7 rounded-full transition-all ${defaultView === 'chart' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400 hover:text-slate-600'}" title="Ver Gráfico">
+                                <i class="ph ph-chart-pie-slice"></i>
+                            </button>
+                        </div>
+                    </div>
                 `;
                 
                 currentMonthContent = document.createElement('div');
                 currentMonthContent.className = `month-content flex flex-col ${isOpen ? 'mt-4' : 'hidden'}`;
                 
-                const contentDiv = currentMonthContent;
-                const toggleBtn = sep.querySelector('button');
+                const calWrapper = document.createElement('div');
+                calWrapper.className = `month-calendar-view ${defaultView === 'calendar' ? '' : 'hidden'}`;
+                currentMonthCalWrapper = calWrapper;
                 
-                toggleBtn.onclick = (e) => {
+                const chartWrapper = document.createElement('div');
+                chartWrapper.className = `month-chart-view ${defaultView === 'chart' ? '' : 'hidden'} bg-white p-6 rounded-2xl border border-slate-100 shadow-sm relative`;
+                const canvasId = `chart-month-${currentMonth}`;
+                chartWrapper.innerHTML = `
+                    <div class="flex justify-end mb-4">
+                        <select class="chart-type-select text-xs font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded-md py-1 px-2 outline-none cursor-pointer">
+                            <option value="pie">Gráfico de Pizza</option>
+                            <option value="doughnut">Gráfico de Rosca</option>
+                            <option value="bar">Gráfico de Barras</option>
+                        </select>
+                    </div>
+                    <div class="relative h-64 w-full flex items-center justify-center">
+                        <canvas id="${canvasId}"></canvas>
+                    </div>
+                `;
+
+                currentMonthContent.appendChild(calWrapper);
+                currentMonthContent.appendChild(chartWrapper);
+                
+                const contentDiv = currentMonthContent;
+                const toggleArea = sep.querySelector('.accordion-toggle-area');
+                const btnCal = sep.querySelector('.btn-view-cal');
+                const btnChart = sep.querySelector('.btn-view-chart');
+                const chartSelect = chartWrapper.querySelector('.chart-type-select');
+                
+                const mStats = monthStats[currentMonth];
+                
+                toggleArea.onclick = (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    const icon = toggleBtn.querySelector('i');
+                    const icon = toggleArea.querySelector('i');
                     if (contentDiv.classList.contains('hidden')) {
                         contentDiv.classList.remove('hidden');
                         contentDiv.classList.add('mt-4');
                         icon.classList.add('rotate-180');
-                        setTimeout(() => toggleBtn.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+                        setTimeout(() => toggleArea.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+                        // render chart if it's the active view and not rendered yet
+                        if (!calWrapper.classList.contains('hidden') === false) {
+                             renderChart(canvasId, mStats, chartSelect.value);
+                        }
                     } else {
                         contentDiv.classList.add('hidden');
                         contentDiv.classList.remove('mt-4');
@@ -207,9 +306,38 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 };
 
+                const setView = (view) => {
+                    if (view === 'calendar') {
+                        calWrapper.classList.remove('hidden');
+                        chartWrapper.classList.add('hidden');
+                        btnCal.className = 'btn-view-cal flex items-center justify-center w-7 h-7 rounded-full transition-all bg-white shadow-sm text-indigo-600';
+                        btnChart.className = 'btn-view-chart flex items-center justify-center w-7 h-7 rounded-full transition-all text-slate-400 hover:text-slate-600';
+                    } else {
+                        calWrapper.classList.add('hidden');
+                        chartWrapper.classList.remove('hidden');
+                        btnChart.className = 'btn-view-chart flex items-center justify-center w-7 h-7 rounded-full transition-all bg-white shadow-sm text-indigo-600';
+                        btnCal.className = 'btn-view-cal flex items-center justify-center w-7 h-7 rounded-full transition-all text-slate-400 hover:text-slate-600';
+                        // Render chart when switching to chart view
+                        renderChart(canvasId, mStats, chartSelect.value);
+                    }
+                };
+
+                btnCal.onclick = (e) => { e.stopPropagation(); setView('calendar'); };
+                btnChart.onclick = (e) => { e.stopPropagation(); setView('chart'); };
+                
+                chartSelect.onchange = (e) => {
+                    renderChart(canvasId, mStats, e.target.value);
+                };
+
                 currentMonthContainer.appendChild(sep);
                 currentMonthContainer.appendChild(currentMonthContent);
                 rootEl.appendChild(currentMonthContainer);
+                
+                // If chart is the default view and it's open, render immediately (won't happen because past months are closed by default, but just in case)
+                if (isOpen && defaultView === 'chart') {
+                    // Need to wait until it's actually in DOM
+                    setTimeout(() => renderChart(canvasId, mStats, chartSelect.value), 0);
+                }
             }
 
             const weekRow = document.createElement('div');
@@ -288,8 +416,71 @@ document.addEventListener('DOMContentLoaded', () => {
                 weekRow.appendChild(dayCell);
             });
 
-            currentMonthContent.appendChild(weekRow);
+            currentMonthCalWrapper.appendChild(weekRow);
         });
+
+        // Add Yearly Plan accordion
+        const yearContainer = document.createElement('div');
+        yearContainer.className = 'w-full mt-8 mb-4';
+        
+        const yearSep = document.createElement('div');
+        yearSep.className = 'month-separator transition-colors group';
+        
+        yearSep.innerHTML = `
+            <div class="flex items-center gap-3 bg-white border border-slate-100 shadow-sm rounded-full pl-5 pr-2 py-1.5 hover:border-indigo-200 transition-colors z-10 w-full justify-between sm:w-auto sm:justify-start">
+                <div class="flex items-center gap-2 cursor-pointer font-bold text-slate-700 outline-none text-sm sm:text-base flex-1 accordion-toggle-area">
+                    <i class="ph-fill ph-chart-polar text-indigo-500 text-lg"></i> Planejamento Anual ${YEAR}
+                    <i class="ph ph-caret-down text-slate-400 transition-transform duration-300"></i>
+                </div>
+            </div>
+        `;
+        
+        const yearContent = document.createElement('div');
+        yearContent.className = 'month-content flex flex-col hidden';
+        
+        const yearChartWrapper = document.createElement('div');
+        yearChartWrapper.className = 'bg-white p-6 rounded-2xl border border-slate-100 shadow-sm relative mt-4';
+        const yearCanvasId = 'chart-year';
+        yearChartWrapper.innerHTML = `
+            <div class="flex justify-end mb-4">
+                <select class="chart-type-select text-xs font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded-md py-1 px-2 outline-none cursor-pointer">
+                    <option value="pie">Gráfico de Pizza</option>
+                    <option value="doughnut">Gráfico de Rosca</option>
+                    <option value="bar">Gráfico de Barras</option>
+                </select>
+            </div>
+            <div class="relative h-72 w-full flex items-center justify-center">
+                <canvas id="${yearCanvasId}"></canvas>
+            </div>
+        `;
+        
+        yearContent.appendChild(yearChartWrapper);
+        
+        const yToggleArea = yearSep.querySelector('.accordion-toggle-area');
+        const yChartSelect = yearChartWrapper.querySelector('.chart-type-select');
+        
+        yToggleArea.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const icon = yToggleArea.querySelector('.ph-caret-down');
+            if (yearContent.classList.contains('hidden')) {
+                yearContent.classList.remove('hidden');
+                icon.classList.add('rotate-180');
+                setTimeout(() => yToggleArea.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+                setTimeout(() => renderChart(yearCanvasId, yearStats, yChartSelect.value), 10);
+            } else {
+                yearContent.classList.add('hidden');
+                icon.classList.remove('rotate-180');
+            }
+        };
+
+        yChartSelect.onchange = (e) => {
+            renderChart(yearCanvasId, yearStats, e.target.value);
+        };
+
+        yearContainer.appendChild(yearSep);
+        yearContainer.appendChild(yearContent);
+        rootEl.appendChild(yearContainer);
     }
 
     // --- Day Modal Logic ---
