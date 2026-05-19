@@ -196,11 +196,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 Chart.register(ChartDataLabels);
             }
             
+            const rawLabels = ['Com Filhos', 'Sem Filhos', 'Indefinido'];
+            const rawData = [stats.comFilhos, stats.semFilhos, stats.indefinido];
+            const rawColors = ['#10b981', '#f97316', '#cbd5e1'];
+            
+            const labels = [];
+            const dataArr = [];
+            const colors = [];
+            
+            for (let i = 0; i < rawData.length; i++) {
+                if (rawData[i] > 0 || rawLabels[i] !== 'Indefinido') {
+                    labels.push(rawLabels[i]);
+                    dataArr.push(rawData[i]);
+                    colors.push(rawColors[i]);
+                }
+            }
+            
             const data = {
-                labels: ['Com Filhos', 'Sem Filhos', 'Indefinido'],
+                labels: labels,
                 datasets: [{
-                    data: [stats.comFilhos, stats.semFilhos, stats.indefinido],
-                    backgroundColor: ['#10b981', '#f97316', '#cbd5e1'],
+                    data: dataArr,
+                    backgroundColor: colors,
                     borderWidth: 0,
                     hoverOffset: 4
                 }]
