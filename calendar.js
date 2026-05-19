@@ -19,7 +19,8 @@ document.addEventListener('DOMContentLoaded', () => {
             start: '',
             end: '',
             status: '',
-            hasEventsOnly: false
+            hasEventsOnly: false,
+            showPastNormal: false
         },
         isReady: false,
         selectedDate: null
@@ -156,6 +157,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const weeks = generateCalendarData();
         let currentMonth = -1;
+        let currentMonthContainer = null;
+        let currentMonthContent = null;
+        const currentRealMonth = new Date().getMonth();
+        const currentRealYear = new Date().getFullYear();
         const todayStr = getTodayStr();
         const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
@@ -163,10 +168,43 @@ document.addEventListener('DOMContentLoaded', () => {
             const thursday = week[3].date;
             if (thursday.getFullYear() === YEAR && thursday.getMonth() !== currentMonth) {
                 currentMonth = thursday.getMonth();
+                
+                currentMonthContainer = document.createElement('div');
+                currentMonthContainer.className = 'w-full mb-4';
+                
+                const isPastMonth = (YEAR < currentRealYear) || (YEAR === currentRealYear && currentMonth < currentRealMonth);
+                const isOpen = !isPastMonth;
+                
                 const sep = document.createElement('div');
-                sep.className = 'month-separator';
-                sep.innerHTML = `<span>${monthNames[currentMonth]} ${YEAR}</span>`;
-                rootEl.appendChild(sep);
+                sep.className = 'month-separator cursor-pointer transition-colors group';
+                
+                sep.innerHTML = `
+                    <span class="flex items-center gap-2 cursor-pointer bg-white border border-slate-100 shadow-sm rounded-full px-5 py-1.5 group-hover:border-indigo-200 transition-colors z-10 text-sm sm:text-base">
+                        ${monthNames[currentMonth]} ${YEAR}
+                        <i class="ph ph-caret-down text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}"></i>
+                    </span>
+                `;
+                
+                currentMonthContent = document.createElement('div');
+                currentMonthContent.className = `month-content flex flex-col transition-all duration-500 overflow-hidden ${isOpen ? 'max-h-[5000px] opacity-100 mt-4' : 'max-h-0 opacity-0'}`;
+                
+                sep.onclick = () => {
+                    const icon = sep.querySelector('i');
+                    if (currentMonthContent.classList.contains('max-h-0')) {
+                        currentMonthContent.classList.remove('max-h-0', 'opacity-0');
+                        currentMonthContent.classList.add('max-h-[5000px]', 'opacity-100', 'mt-4');
+                        icon.classList.add('rotate-180');
+                        setTimeout(() => sep.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+                    } else {
+                        currentMonthContent.classList.add('max-h-0', 'opacity-0');
+                        currentMonthContent.classList.remove('max-h-[5000px]', 'opacity-100', 'mt-4');
+                        icon.classList.remove('rotate-180');
+                    }
+                };
+
+                currentMonthContainer.appendChild(sep);
+                currentMonthContainer.appendChild(currentMonthContent);
+                rootEl.appendChild(currentMonthContainer);
             }
 
             const weekRow = document.createElement('div');
@@ -212,9 +250,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const dayCell = document.createElement('div');
                 
                 let bgColorClass = 'bg-white';
-                if (day.isPast) bgColorClass = 'is-past';
-                else if (day.dayType === 'Com Filhos') bgColorClass = 'bg-com-filhos';
-                else if (day.dayType === 'Sem Filhos') bgColorClass = 'bg-sem-filhos';
+                if (day.isPast && !state.search.showPastNormal) {
+                    bgColorClass = 'is-past';
+                } else if (day.dayType === 'Com Filhos') {
+                    bgColorClass = 'bg-com-filhos';
+                } else if (day.dayType === 'Sem Filhos') {
+                    bgColorClass = 'bg-sem-filhos';
+                }
 
                 dayCell.className = `calendar-day relative p-1.5 sm:p-3 flex flex-col justify-between
                                      ${bgColorClass}
@@ -241,7 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 weekRow.appendChild(dayCell);
             });
 
-            rootEl.appendChild(weekRow);
+            currentMonthContent.appendChild(weekRow);
         });
     }
 
@@ -565,6 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Search & Filters ---
     const filterHasEvents = document.getElementById('filter-has-events');
+    const filterShowPastNormal = document.getElementById('filter-show-past-normal');
 
     btnToggleFilters.onclick = (e) => {
         e.stopPropagation();
@@ -582,7 +625,8 @@ document.addEventListener('DOMContentLoaded', () => {
         state.search.start = filterStart.value;
         state.search.end = filterEnd.value;
         state.search.status = filterStatus.value;
-        state.search.hasEventsOnly = filterHasEvents.checked;
+        state.search.hasEventsOnly = filterHasEvents ? filterHasEvents.checked : false;
+        state.search.showPastNormal = filterShowPastNormal ? filterShowPastNormal.checked : false;
         renderCalendar();
     };
 
@@ -590,7 +634,12 @@ document.addEventListener('DOMContentLoaded', () => {
     filterStart.addEventListener('change', updateSearch);
     filterEnd.addEventListener('change', updateSearch);
     filterStatus.addEventListener('change', updateSearch);
-    filterHasEvents.addEventListener('change', updateSearch);
+    if (filterHasEvents) {
+        filterHasEvents.addEventListener('change', updateSearch);
+    }
+    if (filterShowPastNormal) {
+        filterShowPastNormal.addEventListener('change', updateSearch);
+    }
 
     const btnExportAll = document.getElementById('btn-export-all');
     if (btnExportAll) {
