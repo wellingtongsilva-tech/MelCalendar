@@ -2,6 +2,10 @@
  * Main calendar logic
  */
 
+if (localStorage.getItem('melTheme') === 'dark') {
+    document.body.classList.add('dark-theme');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // --- Configuration & State ---
     const YEAR = 2026;
@@ -37,6 +41,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnToday = document.getElementById('btn-today');
     const btnConfig = document.getElementById('btn-config');
     const loadingIndicator = document.getElementById('loading-indicator');
+
+    // --- Theme Logic ---
+    const themeIcon = document.getElementById('theme-icon');
+    if (document.body.classList.contains('dark-theme') && themeIcon) {
+        themeIcon.classList.replace('ph-moon', 'ph-sun');
+    }
+
+    const btnThemeToggle = document.getElementById('btn-theme-toggle');
+    if (btnThemeToggle) {
+        btnThemeToggle.addEventListener('click', () => {
+            const isDark = document.body.classList.toggle('dark-theme');
+            if (isDark) {
+                localStorage.setItem('melTheme', 'dark');
+                if (themeIcon) themeIcon.classList.replace('ph-moon', 'ph-sun');
+                btnThemeToggle.setAttribute('title', 'Alternar Tema Claro');
+            } else {
+                localStorage.setItem('melTheme', 'light');
+                if (themeIcon) themeIcon.classList.replace('ph-sun', 'ph-moon');
+                btnThemeToggle.setAttribute('title', 'Alternar Tema Escuro');
+            }
+        });
+    }
 
     // Modals
     const dayModal = document.getElementById('day-modal');

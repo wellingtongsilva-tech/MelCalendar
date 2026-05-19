@@ -164,3 +164,63 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
 }
+
+/* --- DARK MODE OVERRIDES --- */
+body.dark-theme {
+    background-color: #0f172a;
+    color: #f1f5f9;
+}
+body.dark-theme .bg-white { background-color: #1e293b !important; }
+body.dark-theme .bg-slate-50 { background-color: #0f172a !important; }
+body.dark-theme .text-slate-800 { color: #f1f5f9 !important; }
+body.dark-theme .text-slate-700 { color: #e2e8f0 !important; }
+body.dark-theme .text-slate-600 { color: #cbd5e1 !important; }
+body.dark-theme .text-slate-500 { color: #94a3b8 !important; }
+body.dark-theme .text-slate-400 { color: #64748b !important; }
+body.dark-theme .border-slate-100, 
+body.dark-theme .border-slate-200, 
+body.dark-theme .border-slate-300 { border-color: #334155 !important; }
+
+body.dark-theme .app-header {
+    background: rgba(15, 23, 42, 0.85);
+    border-bottom-color: rgba(51, 65, 85, 0.8);
+}
+body.dark-theme .calendar-container {
+    background: #1e293b;
+    border-color: rgba(51, 65, 85, 0.8);
+}
+body.dark-theme .calendar-grid {
+    background-color: #334155;
+}
+body.dark-theme .calendar-day {
+    background-color: #1e293b;
+}
+body.dark-theme .day-today {
+    background-color: #172554 !important; /* blue-950 */
+}
+body.dark-theme .bg-com-filhos {
+    background-color: rgba(6, 78, 59, 0.4) !important; /* emerald-900/40 */
+}
+body.dark-theme .bg-sem-filhos {
+    background-color: rgba(124, 45, 18, 0.4) !important; /* orange-900/40 */
+}
+body.dark-theme .is-past {
+    background-color: #0f172a !important;
+}
+body.dark-theme .modal-content {
+    background: rgba(30, 41, 59, 0.98);
+    border-color: rgba(51, 65, 85, 0.5);
+}
+body.dark-theme .month-separator span {
+    color: #f1f5f9;
+}
+body.dark-theme .month-separator::before,
+body.dark-theme .month-separator::after {
+    background: linear-gradient(to right, transparent, #334155, transparent);
+}
+body.dark-theme input, body.dark-theme select, body.dark-theme textarea {
+    color: #f1f5f9;
+}
+body.dark-theme #splash-screen {
+    background-color: #0f172a !important;
+}
