@@ -188,16 +188,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentMonthContent = document.createElement('div');
                 currentMonthContent.className = `month-content flex flex-col transition-all duration-500 overflow-hidden ${isOpen ? 'max-h-[5000px] opacity-100 mt-4' : 'max-h-0 opacity-0'}`;
                 
+                const contentDiv = currentMonthContent;
                 sep.onclick = () => {
                     const icon = sep.querySelector('i');
-                    if (currentMonthContent.classList.contains('max-h-0')) {
-                        currentMonthContent.classList.remove('max-h-0', 'opacity-0');
-                        currentMonthContent.classList.add('max-h-[5000px]', 'opacity-100', 'mt-4');
+                    if (contentDiv.classList.contains('max-h-0')) {
+                        contentDiv.classList.remove('max-h-0', 'opacity-0');
+                        contentDiv.classList.add('max-h-[5000px]', 'opacity-100', 'mt-4');
                         icon.classList.add('rotate-180');
                         setTimeout(() => sep.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
                     } else {
-                        currentMonthContent.classList.add('max-h-0', 'opacity-0');
-                        currentMonthContent.classList.remove('max-h-[5000px]', 'opacity-100', 'mt-4');
+                        contentDiv.classList.add('max-h-0', 'opacity-0');
+                        contentDiv.classList.remove('max-h-[5000px]', 'opacity-100', 'mt-4');
                         icon.classList.remove('rotate-180');
                     }
                 };
