@@ -560,15 +560,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         container.innerHTML = evts.map(evt => `
-            <div class="bg-white border border-slate-100 shadow-sm p-4 rounded-xl flex justify-between items-start group hover:border-indigo-200 transition-colors">
-                <div>
+            <div class="bg-white border border-slate-100 shadow-sm p-4 rounded-xl flex flex-col sm:flex-row justify-between sm:items-start gap-3 group hover:border-indigo-200 transition-colors">
+                <div class="flex-1">
                     <h5 class="font-bold text-slate-800 text-sm flex items-center gap-2">
                         ${evt.title}
                         ${evt.time ? `<span class="text-[10px] font-bold bg-indigo-50 text-indigo-500 px-1.5 py-0.5 rounded">${evt.time}</span>` : ''}
                     </h5>
                     ${evt.description ? `<p class="text-xs font-medium text-slate-500 mt-1.5 leading-relaxed">${evt.description}</p>` : ''}
                 </div>
-                <div class="flex flex-col gap-1.5 sm:flex-row sm:gap-2 opacity-100 sm:opacity-50 group-hover:opacity-100 transition-opacity">
+                <div class="flex items-center gap-1 opacity-100 sm:opacity-50 group-hover:opacity-100 transition-opacity self-end sm:self-auto">
                     <button onclick="window.calendar.editEvent(${evt.id})" class="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 p-2 rounded-lg border border-transparent transition-all" title="Editar evento">
                         <i class="ph ph-pencil-simple text-lg"></i>
                     </button>
