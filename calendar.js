@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let state = {
         events: [],
         config: {
+            appTitle: 'Agenda Mel',
             fixedRules: [] // Array of { dayOfWeek, type, frequency, start, desc }
         },
         search: {
@@ -37,6 +38,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Modals
     const dayModal = document.getElementById('day-modal');
     const settingsModal = document.getElementById('settings-modal');
+
+    // Title
+    const appTitleDisplay = document.getElementById('app-title-display');
+    const btnEditTitle = document.getElementById('btn-edit-title');
 
     // --- Core Logic ---
 
@@ -446,6 +451,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Nuvem já tem dados, carregar da nuvem
                 state.events = cloudData.events;
                 state.config = cloudData.config;
+                if (state.config.appTitle) {
+                    appTitleDisplay.textContent = state.config.appTitle;
+                }
             } else {
                 // Nuvem está vazia, tentar ler backup ou iniciar com padrão
                 const savedRules = localStorage.getItem('melConfigRules2');
@@ -472,6 +480,15 @@ document.addEventListener('DOMContentLoaded', () => {
             loadingIndicator.classList.add('hidden');
         }
     }
+
+    btnEditTitle.addEventListener('click', () => {
+        const newTitle = prompt('Digite o novo título da agenda:', state.config.appTitle || 'Agenda Mel');
+        if (newTitle !== null && newTitle.trim() !== '') {
+            state.config.appTitle = newTitle.trim();
+            appTitleDisplay.textContent = state.config.appTitle;
+            saveStateToCloud();
+        }
+    });
 
     initialize();
 });

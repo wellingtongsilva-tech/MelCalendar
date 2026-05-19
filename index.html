@@ -17,25 +17,26 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-20 gap-4">
                 <!-- User Profile / App Identity -->
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white shadow-md">
-                        <i class="ph-fill ph-users text-xl"></i>
+                <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <div class="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white shadow-md">
+                        <i class="ph-fill ph-users text-lg sm:text-xl"></i>
                     </div>
-                    <div>
-                        <h1 class="text-xl font-bold tracking-tight text-slate-800">
+                    <div class="flex items-center gap-2 truncate cursor-pointer group" id="btn-edit-title" title="Editar Título">
+                        <h1 id="app-title-display" class="text-lg sm:text-xl font-bold tracking-tight text-slate-800 truncate">
                             Agenda Mel
                         </h1>
-                        <p class="text-[10px] sm:text-xs text-slate-500 font-semibold uppercase tracking-wider">Planejamento Familiar</p>
+                        <i class="ph ph-pencil-simple text-slate-400 opacity-70 group-hover:opacity-100 transition-opacity"></i>
                     </div>
                 </div>
 
                 <!-- Actions -->
-                <div class="flex-1 flex justify-end items-center gap-2 relative">
-                    <button id="btn-today" class="hidden sm:inline-flex items-center px-5 py-2 rounded-full shadow-sm text-indigo-700 bg-indigo-50 hover:bg-indigo-100 font-bold text-sm transition-all border border-indigo-100">
-                        Hoje
+                <div class="flex-1 flex justify-end items-center gap-1.5 sm:gap-2 relative">
+                    <button id="btn-today" class="inline-flex items-center justify-center px-3 sm:px-5 py-2 rounded-full shadow-sm text-indigo-700 bg-indigo-50 hover:bg-indigo-100 font-bold text-sm transition-all border border-indigo-100 gap-1.5" title="Ir para Hoje">
+                        <i class="ph ph-calendar-star sm:hidden text-lg"></i>
+                        <span class="hidden sm:inline">Hoje</span>
                     </button>
                     
-                    <button id="btn-toggle-filters" class="w-10 h-10 flex items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors border border-slate-200" title="Buscar / Filtros">
+                    <button id="btn-toggle-filters" class="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors border border-slate-200 shrink-0" title="Buscar / Filtros">
                         <i class="ph ph-magnifying-glass text-lg"></i>
                     </button>
                     
@@ -68,7 +69,7 @@
                         </div>
                     </div>
 
-                    <button id="btn-config" class="w-10 h-10 flex items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors border border-slate-200" title="Configurações">
+                    <button id="btn-config" class="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors border border-slate-200 shrink-0" title="Configurações">
                         <i class="ph ph-sliders-horizontal text-lg"></i>
                     </button>
                     
@@ -79,9 +80,17 @@
             </div>
         </div>
         
+        <!-- Legend (Fixed) -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-slate-100 bg-white/50">
+            <div class="flex items-center justify-center gap-4 sm:gap-6 py-2 text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                <div class="flex items-center gap-1.5"><div class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-emerald-100 border-2 border-emerald-400"></div> Com Filhos</div>
+                <div class="flex items-center gap-1.5"><div class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-orange-100 border-2 border-orange-400"></div> Sem Filhos</div>
+            </div>
+        </div>
+
         <!-- Days Header -->
-        <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 border-t border-slate-100">
-            <div class="grid grid-cols-7 text-center py-3 text-[10px] sm:text-xs font-extrabold text-slate-400 uppercase tracking-widest">
+        <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 border-t border-slate-100 bg-white/80">
+            <div class="grid grid-cols-7 text-center py-2 sm:py-3 text-[10px] sm:text-xs font-extrabold text-slate-400 uppercase tracking-widest">
                 <div><span class="hidden sm:inline">Segunda</span><span class="sm:hidden">Seg</span></div>
                 <div><span class="hidden sm:inline">Terça</span><span class="sm:hidden">Ter</span></div>
                 <div><span class="hidden sm:inline">Quarta</span><span class="sm:hidden">Qua</span></div>
@@ -93,14 +102,8 @@
         </div>
     </header>
 
-    <main class="flex-1 mt-36 max-w-7xl mx-auto w-full px-2 sm:px-6 lg:px-8 pb-12">
-        <!-- Legend -->
-        <div class="flex items-center justify-end gap-6 mb-6 text-xs font-bold text-slate-500 uppercase tracking-wide">
-            <div class="flex items-center gap-2"><div class="w-4 h-4 rounded-full bg-emerald-100 border-2 border-emerald-400 shadow-sm"></div> Com Filhos</div>
-            <div class="flex items-center gap-2"><div class="w-4 h-4 rounded-full bg-orange-100 border-2 border-orange-400 shadow-sm"></div> Sem Filhos</div>
-        </div>
-
-        <div id="calendar-root" class="calendar-container flex flex-col p-4 gap-4">
+    <main class="flex-1 mt-[136px] sm:mt-40 max-w-7xl mx-auto w-full px-2 sm:px-6 lg:px-8 pb-12">
+        <div id="calendar-root" class="calendar-container flex flex-col p-2 sm:p-4 gap-4 mt-4">
             <!-- Weeks -->
         </div>
     </main>
