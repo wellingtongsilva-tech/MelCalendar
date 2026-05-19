@@ -902,10 +902,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const todayStr = getTodayStr();
         const el = document.getElementById(`day-${todayStr}`);
         if (el) {
-            const offsetPosition = el.getBoundingClientRect().top + window.pageYOffset - 120;
-            window.scrollTo({ top: offsetPosition, behavior: "smooth" });
-            el.classList.add('ring-4', 'ring-indigo-300', 'ring-offset-2', 'transition-all');
-            setTimeout(() => el.classList.remove('ring-4', 'ring-indigo-300', 'ring-offset-2'), 1500);
+            const monthContent = el.closest('.month-content');
+            if (monthContent && monthContent.classList.contains('hidden')) {
+                const toggleArea = monthContent.previousElementSibling.querySelector('.accordion-toggle-area');
+                if (toggleArea) toggleArea.click();
+            }
+            
+            setTimeout(() => {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.classList.add('ring-4', 'ring-indigo-400', 'ring-offset-2', 'transition-all');
+                setTimeout(() => el.classList.remove('ring-4', 'ring-indigo-400', 'ring-offset-2'), 2000);
+            }, 100);
         }
     });
 
