@@ -875,11 +875,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const btnClearFilters = document.getElementById('btn-clear-filters');
     if (btnClearFilters) {
-        btnClearFilters.addEventListener('click', () => {
-            searchInput.value = '';
-            filterStart.value = '';
-            filterEnd.value = '';
-            filterStatus.value = '';
+        btnClearFilters.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (searchInput) searchInput.value = '';
+            if (filterStart) filterStart.value = '';
+            if (filterEnd) filterEnd.value = '';
+            if (filterStatus) filterStatus.value = '';
             if (filterHasEvents) filterHasEvents.checked = false;
             if (filterShowPastNormal) filterShowPastNormal.checked = false;
             updateSearch();
