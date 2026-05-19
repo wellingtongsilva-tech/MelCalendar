@@ -18,7 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
             query: '',
             start: '',
             end: '',
-            status: ''
+            status: '',
+            hasEventsOnly: false
         },
         isReady: false,
         selectedDate: null
@@ -200,7 +201,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     dayHiddenByStatus = true;
                 }
 
-                const dimDueToSearch = ((state.search.query || state.search.start || state.search.end) && filteredEvents.length === 0) || dayHiddenByStatus;
+                // Has Events Filter logic
+                let dayHiddenByHasEvents = false;
+                if (state.search.hasEventsOnly && dayEvents.length === 0) {
+                    dayHiddenByHasEvents = true;
+                }
+
+                const dimDueToSearch = ((state.search.query || state.search.start || state.search.end) && filteredEvents.length === 0) || dayHiddenByStatus || dayHiddenByHasEvents;
 
                 const dayCell = document.createElement('div');
                 
@@ -522,15 +529,25 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- Search & Filters ---
-    btnToggleFilters.onclick = () => {
+    const filterHasEvents = document.getElementById('filter-has-events');
+
+    btnToggleFilters.onclick = (e) => {
+        e.stopPropagation();
         filtersPanel.classList.toggle('hidden');
     };
+
+    document.addEventListener('click', (e) => {
+        if (!filtersPanel.contains(e.target) && !btnToggleFilters.contains(e.target)) {
+            filtersPanel.classList.add('hidden');
+        }
+    });
 
     const updateSearch = () => {
         state.search.query = searchInput.value.trim();
         state.search.start = filterStart.value;
         state.search.end = filterEnd.value;
         state.search.status = filterStatus.value;
+        state.search.hasEventsOnly = filterHasEvents.checked;
         renderCalendar();
     };
 
@@ -538,6 +555,7 @@ document.addEventListener('DOMContentLoaded', () => {
     filterStart.addEventListener('change', updateSearch);
     filterEnd.addEventListener('change', updateSearch);
     filterStatus.addEventListener('change', updateSearch);
+    filterHasEvents.addEventListener('change', updateSearch);
 
     const btnExportAll = document.getElementById('btn-export-all');
     if (btnExportAll) {
