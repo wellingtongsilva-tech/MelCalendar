@@ -335,6 +335,28 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('btn-save-day-event').classList.remove('w-2/3');
         document.getElementById('btn-save-day-event').classList.add('w-full');
         document.getElementById('day-event-end-container').classList.remove('hidden');
+        
+        const formContainer = document.getElementById('add-event-form-container');
+        const iconToggle = document.getElementById('icon-toggle-add-event');
+        if (formContainer && !formContainer.classList.contains('hidden')) {
+            formContainer.classList.add('hidden');
+            if (iconToggle) iconToggle.classList.remove('rotate-180');
+        }
+    }
+
+    const btnToggleAddEvent = document.getElementById('btn-toggle-add-event');
+    if (btnToggleAddEvent) {
+        btnToggleAddEvent.addEventListener('click', () => {
+            const formContainer = document.getElementById('add-event-form-container');
+            const iconToggle = document.getElementById('icon-toggle-add-event');
+            if (formContainer.classList.contains('hidden')) {
+                formContainer.classList.remove('hidden');
+                if (iconToggle) iconToggle.classList.add('rotate-180');
+            } else {
+                formContainer.classList.add('hidden');
+                if (iconToggle) iconToggle.classList.remove('rotate-180');
+            }
+        });
     }
 
     const btnCancelEdit = document.getElementById('btn-cancel-edit-event');
@@ -522,6 +544,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('btn-cancel-edit-event').classList.remove('hidden');
                 document.getElementById('btn-save-day-event').classList.remove('w-full');
                 document.getElementById('btn-save-day-event').classList.add('w-2/3');
+                
+                const formContainer = document.getElementById('add-event-form-container');
+                const iconToggle = document.getElementById('icon-toggle-add-event');
+                if (formContainer && formContainer.classList.contains('hidden')) {
+                    formContainer.classList.remove('hidden');
+                    if (iconToggle) iconToggle.classList.add('rotate-180');
+                }
                 
                 document.getElementById('add-event-section').scrollIntoView({behavior: 'smooth'});
             }
