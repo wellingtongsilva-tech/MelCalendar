@@ -179,26 +179,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 sep.className = 'month-separator cursor-pointer transition-colors group';
                 
                 sep.innerHTML = `
-                    <span class="flex items-center gap-2 cursor-pointer bg-white border border-slate-100 shadow-sm rounded-full px-5 py-1.5 group-hover:border-indigo-200 transition-colors z-10 text-sm sm:text-base">
+                    <button type="button" class="flex items-center gap-2 cursor-pointer bg-white border border-slate-100 shadow-sm rounded-full px-5 py-1.5 hover:border-indigo-200 transition-colors z-10 text-sm sm:text-base font-bold text-slate-700 outline-none">
                         ${monthNames[currentMonth]} ${YEAR}
                         <i class="ph ph-caret-down text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}"></i>
-                    </span>
+                    </button>
                 `;
                 
                 currentMonthContent = document.createElement('div');
-                currentMonthContent.className = `month-content flex flex-col transition-all duration-500 overflow-hidden ${isOpen ? 'max-h-[5000px] opacity-100 mt-4' : 'max-h-0 opacity-0'}`;
+                currentMonthContent.className = `month-content flex flex-col ${isOpen ? 'mt-4' : 'hidden'}`;
                 
                 const contentDiv = currentMonthContent;
-                sep.onclick = () => {
-                    const icon = sep.querySelector('i');
-                    if (contentDiv.classList.contains('max-h-0')) {
-                        contentDiv.classList.remove('max-h-0', 'opacity-0');
-                        contentDiv.classList.add('max-h-[5000px]', 'opacity-100', 'mt-4');
+                const toggleBtn = sep.querySelector('button');
+                
+                toggleBtn.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const icon = toggleBtn.querySelector('i');
+                    if (contentDiv.classList.contains('hidden')) {
+                        contentDiv.classList.remove('hidden');
+                        contentDiv.classList.add('mt-4');
                         icon.classList.add('rotate-180');
-                        setTimeout(() => sep.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+                        setTimeout(() => toggleBtn.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
                     } else {
-                        contentDiv.classList.add('max-h-0', 'opacity-0');
-                        contentDiv.classList.remove('max-h-[5000px]', 'opacity-100', 'mt-4');
+                        contentDiv.classList.add('hidden');
+                        contentDiv.classList.remove('mt-4');
                         icon.classList.remove('rotate-180');
                     }
                 };
