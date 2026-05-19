@@ -192,6 +192,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 chartInstances[canvasId].destroy();
             }
             
+            if (typeof ChartDataLabels !== 'undefined') {
+                Chart.register(ChartDataLabels);
+            }
+            
             const data = {
                 labels: ['Com Filhos', 'Sem Filhos', 'Indefinido'],
                 datasets: [{
@@ -209,7 +213,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'bottom', labels: { font: { family: 'Plus Jakarta Sans', weight: 'bold' } } }
+                        legend: { position: 'bottom', labels: { font: { family: 'Plus Jakarta Sans', weight: 'bold' } } },
+                        datalabels: {
+                            color: '#ffffff',
+                            font: {
+                                weight: 'bold',
+                                family: 'Plus Jakarta Sans',
+                                size: 14
+                            },
+                            formatter: (value, context) => {
+                                if (value === 0) return null;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                if (total === 0) return null;
+                                return Math.round((value / total) * 100) + '%';
+                            }
+                        }
                     }
                 }
             };
