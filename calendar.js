@@ -232,6 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         legend: { position: 'bottom', labels: { font: { family: 'Plus Jakarta Sans', weight: 'bold' } } },
                         datalabels: {
                             color: '#ffffff',
+                            textAlign: 'center',
                             font: {
                                 weight: 'bold',
                                 family: 'Plus Jakarta Sans',
@@ -241,7 +242,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 if (value === 0) return null;
                                 const total = context.dataset.data.reduce((a, b) => a + b, 0);
                                 if (total === 0) return null;
-                                return Math.round((value / total) * 100) + '%';
+                                const percentage = Math.round((value / total) * 100) + '%';
+                                return `${value}d\n${percentage}`;
                             }
                         }
                     }
