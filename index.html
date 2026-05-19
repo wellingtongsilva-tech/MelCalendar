@@ -14,6 +14,17 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 </head>
 <body class="text-slate-800 flex flex-col min-h-screen">
+    <!-- Splash Screen -->
+    <div id="splash-screen" class="fixed inset-0 z-[9999] bg-slate-50 flex flex-col items-center justify-center transition-opacity duration-700">
+        <div class="relative flex items-center justify-center w-32 h-32 mb-6">
+            <div class="absolute inset-0 rounded-full border-[4px] border-slate-200 border-t-indigo-600 border-l-purple-500 animate-[spin_1.5s_linear_infinite]"></div>
+            <div class="absolute inset-2.5 rounded-full bg-white flex items-center justify-center shadow-lg border border-slate-100 overflow-hidden">
+                <img src="logo.png" alt="Agenda Mel Logo" class="w-full h-full object-cover scale-[1.2]">
+            </div>
+        </div>
+        <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight mb-2">Agenda Mel</h2>
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest animate-pulse">Sincronizando Agenda...</p>
+    </div>
     <!-- Premium Header -->
     <header class="app-header fixed top-0 left-0 right-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -272,5 +283,16 @@
 
     <script src="api.js"></script>
     <script src="calendar.js"></script>
+    <script>
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const splash = document.getElementById('splash-screen');
+                if (splash) {
+                    splash.classList.add('opacity-0');
+                    setTimeout(() => splash.remove(), 700);
+                }
+            }, 3000);
+        });
+    </script>
 </body>
 </html>
