@@ -447,29 +447,35 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const cloudData = await window.api.fetchEvents();
             
-            if (cloudData && cloudData.events && cloudData.events.length > 0) {
-                // Nuvem já tem dados, carregar da nuvem
-                state.events = cloudData.events;
-                state.config = cloudData.config;
-                if (state.config.appTitle) {
-                    appTitleDisplay.textContent = state.config.appTitle;
+            if (cloudData && cloudData.config) {
+                const hasCloudData = (cloudData.events && cloudData.events.length > 0) || 
+                                     (cloudData.config.fixedRules && cloudData.config.fixedRules.length > 0);
+                
+                if (hasCloudData) {
+                    // Nuvem tem dados (eventos ou regras), carregar da nuvem
+                    state.events = cloudData.events || [];
+                    state.config = cloudData.config;
+                    if (state.config.appTitle) {
+                        appTitleDisplay.textContent = state.config.appTitle;
+                    }
+                } else {
+                    // Nuvem está vazia. Tentar carregar fallback local ou criar semente
+                    const savedRules = localStorage.getItem('melConfigRules2');
+                    if(savedRules) {
+                        state.config.fixedRules = JSON.parse(savedRules);
+                    } else {
+                        state.config.fixedRules = [
+                            { dayOfWeek: 6, type: 'Com Filhos', frequency: 'quinzenal', start: '2026-05-09', desc: 'Fim de semana alternado' },
+                            { dayOfWeek: 0, type: 'Com Filhos', frequency: 'quinzenal', start: '2026-05-10', desc: 'Fim de semana alternado' },
+                            { dayOfWeek: 6, type: 'Sem Filhos', frequency: 'quinzenal', start: '2026-05-16', desc: 'Fim de semana alternado' },
+                            { dayOfWeek: 0, type: 'Sem Filhos', frequency: 'quinzenal', start: '2026-05-17', desc: 'Fim de semana alternado' }
+                        ];
+                    }
+                    saveStateToCloud();
                 }
             } else {
-                // Nuvem está vazia, tentar ler backup ou iniciar com padrão
-                const savedRules = localStorage.getItem('melConfigRules2');
-                if(savedRules) {
-                    state.config.fixedRules = JSON.parse(savedRules);
-                } else {
-                    // Seed standard alternating weekends
-                    state.config.fixedRules = [
-                        { dayOfWeek: 6, type: 'Com Filhos', frequency: 'quinzenal', start: '2026-05-09', desc: 'Fim de semana alternado' },
-                        { dayOfWeek: 0, type: 'Com Filhos', frequency: 'quinzenal', start: '2026-05-10', desc: 'Fim de semana alternado' },
-                        { dayOfWeek: 6, type: 'Sem Filhos', frequency: 'quinzenal', start: '2026-05-16', desc: 'Fim de semana alternado' },
-                        { dayOfWeek: 0, type: 'Sem Filhos', frequency: 'quinzenal', start: '2026-05-17', desc: 'Fim de semana alternado' }
-                    ];
-                }
-                // Como não tinha nada na nuvem, faz um primeiro sync pra garantir que comece a salvar
-                saveStateToCloud();
+                 // Fallback if cloudData is completely malformed
+                 throw new Error("Dados da nuvem malformados");
             }
 
             state.isReady = true;

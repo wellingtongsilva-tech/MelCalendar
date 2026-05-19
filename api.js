@@ -63,23 +63,17 @@ async function fetchEvents(timeoutMs = 15000) {
  */
 async function syncData(stateData) {
     try {
-        const response = await fetch(WEB_APP_URL, {
+        await fetch(WEB_APP_URL, {
             method: 'POST',
+            mode: 'no-cors', // Avoids CORS errors from GAS 302 redirects
             body: JSON.stringify(stateData),
-            // Utilizando text/plain para evitar erro de CORS preflight no Google Apps Script
             headers: {
                 'Content-Type': 'text/plain;charset=utf-8',
             }
         });
         
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        return await response.json();
-
-        // Mock data for demonstration purposes since we don't have a real URL
-        //return mockFetchData();
+        // With no-cors, the response is opaque. We assume success if the network request doesn't throw.
+        return { success: true };
     } catch (error) {
         console.error('Failed to sync data:', error);
         throw error;
