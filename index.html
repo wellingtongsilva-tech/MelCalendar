@@ -69,6 +69,10 @@
                         </div>
                     </div>
 
+                    <button id="btn-export-all" class="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors border border-slate-200 shrink-0" title="Exportar toda a Agenda (.ics)">
+                        <i class="ph ph-download-simple text-lg"></i>
+                    </button>
+
                     <button id="btn-config" class="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors border border-slate-200 shrink-0" title="Configurações">
                         <i class="ph ph-sliders-horizontal text-lg"></i>
                     </button>
@@ -113,9 +117,19 @@
         <div class="flex items-center justify-center min-h-screen p-4 text-center">
             <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" id="day-modal-overlay"></div>
             <div class="modal-content relative rounded-[2rem] text-left overflow-hidden w-full max-w-md flex flex-col max-h-[90vh]">
-                <div class="px-6 py-5 border-b border-slate-100/50 flex justify-between items-center">
-                    <h3 class="text-xl font-bold text-slate-800" id="day-modal-title">Data</h3>
-                    <button type="button" id="btn-close-day-modal" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors">
+                <div class="px-6 py-5 border-b border-slate-100/50 flex justify-between items-start">
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-800" id="day-modal-title">Data</h3>
+                        <div class="mt-2 flex items-center gap-2">
+                            <span id="day-modal-status-badge" class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md">Status</span>
+                            <select id="day-override-select" class="text-[10px] font-bold bg-slate-50 border border-slate-200 rounded-md py-1 px-2 text-slate-600 focus:ring-indigo-500 focus:border-indigo-500 outline-none cursor-pointer">
+                                <option value="">Regra Padrão</option>
+                                <option value="Com Filhos">Forçar: Com Filhos</option>
+                                <option value="Sem Filhos">Forçar: Sem Filhos</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="button" id="btn-close-day-modal" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors shrink-0">
                         <i class="ph ph-x text-lg"></i>
                     </button>
                 </div>
@@ -140,9 +154,15 @@
                             <div>
                                 <textarea id="day-event-desc" rows="2" placeholder="Descrição (opcional)" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm outline-none transition-all"></textarea>
                             </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 mb-2">Repetir até (opcional - cria período)</label>
-                                <input type="date" id="day-event-end" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm outline-none transition-all">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 mb-2">Horário (opcional)</label>
+                                    <input type="time" id="day-event-time" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm outline-none transition-all">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 mb-2">Repetir até (opcional)</label>
+                                    <input type="date" id="day-event-end" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm outline-none transition-all">
+                                </div>
                             </div>
                             <button type="submit" id="btn-save-day-event" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-lg shadow-indigo-500/30 text-sm font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 focus:outline-none transition-all hover:scale-[1.02]">
                                 Salvar Evento

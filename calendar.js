@@ -11,7 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
         events: [],
         config: {
             appTitle: 'Agenda Mel',
-            fixedRules: [] // Array of { dayOfWeek, type, frequency, start, desc }
+            fixedRules: [], // Array of { dayOfWeek, type, frequency, start, desc }
+            dayOverrides: {} // Overrides: 'YYYY-MM-DD': 'Com Filhos'|'Sem Filhos'
         },
         search: {
             query: '',
@@ -102,6 +103,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function calculateDayType(dateObj, dayOfWeek) {
         let matchedType = null;
         const dateStr = formatDateStr(dateObj);
+        
+        if (state.config.dayOverrides && state.config.dayOverrides[dateStr]) {
+            return state.config.dayOverrides[dateStr];
+        }
         
         const rulesForDay = state.config.fixedRules.filter(r => r.dayOfWeek == dayOfWeek);
         
@@ -242,6 +247,35 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('day-modal-title').textContent = dObj.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
         document.getElementById('day-event-date').value = day.dateStr;
         
+        const badge = document.getElementById('day-modal-status-badge');
+        badge.textContent = day.dayType || 'Indefinido';
+        if (day.dayType === 'Com Filhos') {
+            badge.className = 'text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-700';
+        } else if (day.dayType === 'Sem Filhos') {
+            badge.className = 'text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md bg-orange-100 text-orange-700';
+        } else {
+            badge.className = 'text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md bg-slate-100 text-slate-500';
+        }
+
+        const selectOverride = document.getElementById('day-override-select');
+        selectOverride.value = (state.config.dayOverrides && state.config.dayOverrides[day.dateStr]) ? state.config.dayOverrides[day.dateStr] : '';
+        
+        const newSelect = selectOverride.cloneNode(true);
+        selectOverride.parentNode.replaceChild(newSelect, selectOverride);
+        newSelect.addEventListener('change', (e) => {
+            if (!state.config.dayOverrides) state.config.dayOverrides = {};
+            if (e.target.value === '') {
+                delete state.config.dayOverrides[day.dateStr];
+            } else {
+                state.config.dayOverrides[day.dateStr] = e.target.value;
+            }
+            saveStateToCloud();
+            
+            const newType = calculateDayType(day.date, day.date.getDay());
+            day.dayType = newType;
+            openDayModal(day);
+        });
+
         if (day.isPast) {
             document.getElementById('add-event-section').classList.add('hidden');
         } else {
@@ -265,7 +299,10 @@ document.addEventListener('DOMContentLoaded', () => {
         container.innerHTML = evts.map(evt => `
             <div class="bg-white border border-slate-100 shadow-sm p-4 rounded-xl flex justify-between items-start group hover:border-indigo-200 transition-colors">
                 <div>
-                    <h5 class="font-bold text-slate-800 text-sm">${evt.title}</h5>
+                    <h5 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                        ${evt.title}
+                        ${evt.time ? `<span class="text-[10px] font-bold bg-indigo-50 text-indigo-500 px-1.5 py-0.5 rounded">${evt.time}</span>` : ''}
+                    </h5>
                     ${evt.description ? `<p class="text-xs font-medium text-slate-500 mt-1.5 leading-relaxed">${evt.description}</p>` : ''}
                 </div>
                 <button onclick="window.calendar.exportEvent(${evt.id})" class="text-indigo-500 hover:text-white hover:bg-indigo-500 p-2 rounded-lg border border-indigo-100 transition-all" title="Exportar para agenda">
@@ -283,6 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const start = document.getElementById('day-event-date').value;
         const title = document.getElementById('day-event-title').value.trim();
         const desc = document.getElementById('day-event-desc').value.trim();
+        const time = document.getElementById('day-event-time').value;
         const end = document.getElementById('day-event-end').value;
 
         const startDate = new Date(start + 'T00:00:00');
@@ -301,7 +339,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 id: ++maxId,
                 date: formatDateStr(current),
                 title: title,
-                description: desc
+                description: desc,
+                time: time
             });
             current.setDate(current.getDate() + 1);
         }
@@ -390,7 +429,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 `DTSTART;VALUE=DATE:${dateStr}`,
                 `DTEND;VALUE=DATE:${endDateStr}`,
                 `SUMMARY:${evt.title}`,
-                `DESCRIPTION:${evt.description || ''}`,
+                `DESCRIPTION:${evt.time ? 'Horário: ' + evt.time + '\\n' : ''}${evt.description || ''}`,
                 'END:VEVENT',
                 'END:VCALENDAR'
             ].join('\r\n');
@@ -429,6 +468,48 @@ document.addEventListener('DOMContentLoaded', () => {
     filterStart.addEventListener('change', updateSearch);
     filterEnd.addEventListener('change', updateSearch);
     filterStatus.addEventListener('change', updateSearch);
+
+    const btnExportAll = document.getElementById('btn-export-all');
+    if (btnExportAll) {
+        btnExportAll.addEventListener('click', () => {
+            if (state.events.length === 0) {
+                alert("Não há eventos para exportar.");
+                return;
+            }
+            const icsLines = [
+                'BEGIN:VCALENDAR',
+                'VERSION:2.0',
+                'PRODID:-//Agenda Mel//PT'
+            ];
+            state.events.forEach(evt => {
+                const dateObj = new Date(evt.date);
+                const dateStr = dateObj.toISOString().replace(/-/g, '').split('T')[0];
+                const endDateObj = new Date(dateObj);
+                endDateObj.setDate(endDateObj.getDate() + 1);
+                const endDateStr = endDateObj.toISOString().replace(/-/g, '').split('T')[0];
+                
+                icsLines.push('BEGIN:VEVENT');
+                icsLines.push(`DTSTART;VALUE=DATE:${dateStr}`);
+                icsLines.push(`DTEND;VALUE=DATE:${endDateStr}`);
+                icsLines.push(`SUMMARY:${evt.title}`);
+                if(evt.time || evt.description) {
+                    icsLines.push(`DESCRIPTION:${evt.time ? 'Horário: ' + evt.time + '\\n' : ''}${evt.description || ''}`);
+                }
+                icsLines.push('END:VEVENT');
+            });
+            icsLines.push('END:VCALENDAR');
+
+            const blob = new Blob([icsLines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `AgendaMel_Completa.ics`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        });
+    }
 
     // --- Init ---
     btnToday.addEventListener('click', () => {
