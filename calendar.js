@@ -951,6 +951,10 @@ document.addEventListener('DOMContentLoaded', () => {
             rootEl.innerHTML = `<div class="p-8 text-center text-red-500">Erro ao carregar eventos da nuvem. Verifique o console.</div>`;
         } finally {
             loadingIndicator.classList.add('hidden');
+            // Clicar no botão 'Hoje' após 1 segundo da primeira carga
+            setTimeout(() => {
+                if (btnToday) btnToday.click();
+            }, 1000);
         }
     }
 
