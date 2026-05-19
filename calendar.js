@@ -305,49 +305,94 @@ document.addEventListener('DOMContentLoaded', () => {
                     </h5>
                     ${evt.description ? `<p class="text-xs font-medium text-slate-500 mt-1.5 leading-relaxed">${evt.description}</p>` : ''}
                 </div>
-                <button onclick="window.calendar.exportEvent(${evt.id})" class="text-indigo-500 hover:text-white hover:bg-indigo-500 p-2 rounded-lg border border-indigo-100 transition-all" title="Exportar para agenda">
-                    <i class="ph ph-download-simple text-lg"></i>
-                </button>
+                <div class="flex flex-col gap-1.5 sm:flex-row sm:gap-2 opacity-100 sm:opacity-50 group-hover:opacity-100 transition-opacity">
+                    <button onclick="window.calendar.editEvent(${evt.id})" class="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 p-2 rounded-lg border border-transparent transition-all" title="Editar evento">
+                        <i class="ph ph-pencil-simple text-lg"></i>
+                    </button>
+                    <button onclick="window.calendar.deleteEvent(${evt.id})" class="text-slate-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg border border-transparent transition-all" title="Excluir evento">
+                        <i class="ph ph-trash text-lg"></i>
+                    </button>
+                    <button onclick="window.calendar.exportEvent(${evt.id})" class="text-indigo-500 hover:text-white hover:bg-indigo-500 p-2 rounded-lg border border-indigo-100 transition-all" title="Exportar para agenda">
+                        <i class="ph ph-download-simple text-lg"></i>
+                    </button>
+                </div>
             </div>
         `).join('');
     }
 
-    document.getElementById('btn-close-day-modal').onclick = () => dayModal.classList.add('hidden');
-    document.getElementById('day-modal-overlay').onclick = () => dayModal.classList.add('hidden');
+    function resetEventForm() {
+        document.getElementById('day-add-event-form').reset();
+        document.getElementById('day-event-id').value = '';
+        document.getElementById('btn-save-day-event').textContent = 'Salvar Evento';
+        document.getElementById('btn-cancel-edit-event').classList.add('hidden');
+        document.getElementById('btn-save-day-event').classList.remove('w-2/3');
+        document.getElementById('btn-save-day-event').classList.add('w-full');
+        document.getElementById('day-event-end-container').classList.remove('hidden');
+    }
+
+    const btnCancelEdit = document.getElementById('btn-cancel-edit-event');
+    if (btnCancelEdit) {
+        btnCancelEdit.addEventListener('click', resetEventForm);
+    }
+
+    // Modal Events
+    document.getElementById('btn-close-day-modal').onclick = () => {
+        dayModal.classList.add('hidden');
+        resetEventForm();
+    };
+    document.getElementById('day-modal-overlay').onclick = () => {
+        dayModal.classList.add('hidden');
+        resetEventForm();
+    };
 
     document.getElementById('day-add-event-form').onsubmit = (e) => {
         e.preventDefault();
+        const eventId = document.getElementById('day-event-id').value;
         const start = document.getElementById('day-event-date').value;
         const title = document.getElementById('day-event-title').value.trim();
         const desc = document.getElementById('day-event-desc').value.trim();
         const time = document.getElementById('day-event-time').value;
         const end = document.getElementById('day-event-end').value;
 
-        const startDate = new Date(start + 'T00:00:00');
-        const endDate = end ? new Date(end + 'T00:00:00') : new Date(startDate);
-        
-        if (endDate < startDate) {
-            alert('A Data Fim deve ser maior ou igual à Data Início.');
-            return;
-        }
+        if (eventId) {
+            // Edição
+            const idx = state.events.findIndex(ev => ev.id === parseInt(eventId));
+            if (idx !== -1) {
+                state.events[idx] = {
+                    ...state.events[idx],
+                    title: title,
+                    description: desc,
+                    time: time
+                };
+            }
+        } else {
+            // Criação
+            const startDate = new Date(start + 'T00:00:00');
+            const endDate = end ? new Date(end + 'T00:00:00') : new Date(startDate);
+            
+            if (endDate < startDate) {
+                alert('A Data Fim deve ser maior ou igual à Data Início.');
+                return;
+            }
 
-        let current = new Date(startDate);
-        let maxId = state.events.length > 0 ? Math.max(...state.events.map(ev => ev.id)) : 0;
+            let current = new Date(startDate);
+            let maxId = state.events.length > 0 ? Math.max(...state.events.map(ev => ev.id)) : 0;
 
-        while (current <= endDate) {
-            state.events.push({
-                id: ++maxId,
-                date: formatDateStr(current),
-                title: title,
-                description: desc,
-                time: time
-            });
-            current.setDate(current.getDate() + 1);
+            while (current <= endDate) {
+                state.events.push({
+                    id: ++maxId,
+                    date: formatDateStr(current),
+                    title: title,
+                    description: desc,
+                    time: time
+                });
+                current.setDate(current.getDate() + 1);
+            }
         }
 
         renderDayEventsList();
         saveStateToCloud();
-        document.getElementById('day-add-event-form').reset();
+        resetEventForm();
     };
 
     // --- Settings Modal Logic ---
@@ -448,6 +493,31 @@ document.addEventListener('DOMContentLoaded', () => {
             state.config.fixedRules.splice(idx, 1);
             renderRulesList();
             saveStateToCloud();
+        },
+        deleteEvent: (id) => {
+            if (confirm('Tem certeza que deseja excluir este evento?')) {
+                state.events = state.events.filter(e => e.id !== id);
+                renderDayEventsList();
+                saveStateToCloud();
+            }
+        },
+        editEvent: (id) => {
+            const evt = state.events.find(e => e.id === id);
+            if (evt) {
+                document.getElementById('day-event-id').value = evt.id;
+                document.getElementById('day-event-title').value = evt.title;
+                document.getElementById('day-event-desc').value = evt.description || '';
+                document.getElementById('day-event-time').value = evt.time || '';
+                document.getElementById('day-event-end').value = '';
+                document.getElementById('day-event-end-container').classList.add('hidden');
+                
+                document.getElementById('btn-save-day-event').textContent = 'Atualizar Evento';
+                document.getElementById('btn-cancel-edit-event').classList.remove('hidden');
+                document.getElementById('btn-save-day-event').classList.remove('w-full');
+                document.getElementById('btn-save-day-event').classList.add('w-2/3');
+                
+                document.getElementById('add-event-section').scrollIntoView({behavior: 'smooth'});
+            }
         }
     };
 

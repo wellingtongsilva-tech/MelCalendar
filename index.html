@@ -146,10 +146,11 @@
                             <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center"><i class="ph ph-plus text-lg"></i></div> 
                             Novo Evento
                         </h4>
-                        <form id="day-add-event-form" class="space-y-4">
+                        <form id="day-add-event-form" class="space-y-4 relative">
                             <input type="hidden" id="day-event-date">
+                            <input type="hidden" id="day-event-id" value="">
                             <div>
-                                <input type="text" id="day-event-title" required placeholder="Título do evento" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm outline-none transition-all">
+                                <input type="text" id="day-event-title" required placeholder="Título do Evento (ex: Dentista)" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm outline-none transition-all">
                             </div>
                             <div>
                                 <textarea id="day-event-desc" rows="2" placeholder="Descrição (opcional)" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm outline-none transition-all"></textarea>
@@ -159,14 +160,17 @@
                                     <label class="block text-xs font-bold text-slate-500 mb-2">Horário (opcional)</label>
                                     <input type="time" id="day-event-time" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm outline-none transition-all">
                                 </div>
-                                <div>
+                                <div id="day-event-end-container">
                                     <label class="block text-xs font-bold text-slate-500 mb-2">Repetir até (opcional)</label>
                                     <input type="date" id="day-event-end" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm outline-none transition-all">
                                 </div>
                             </div>
-                            <button type="submit" id="btn-save-day-event" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-lg shadow-indigo-500/30 text-sm font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 focus:outline-none transition-all hover:scale-[1.02]">
-                                Salvar Evento
-                            </button>
+                            <div class="flex gap-2">
+                                <button type="button" id="btn-cancel-edit-event" class="hidden w-1/3 flex justify-center py-3 px-4 border border-slate-200 rounded-xl shadow-sm text-sm font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 focus:outline-none transition-all">Cancelar</button>
+                                <button type="submit" id="btn-save-day-event" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-lg shadow-indigo-500/30 text-sm font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 focus:outline-none transition-all hover:scale-[1.02]">
+                                    Salvar Evento
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>
