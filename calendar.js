@@ -250,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const defaultView = isPastMonth ? 'chart' : 'calendar';
                 
                 const sep = document.createElement('div');
-                sep.className = 'month-separator transition-colors group';
+                sep.className = 'month-separator transition-colors group scroll-mt-24';
                 
                 sep.innerHTML = `
                     <div class="flex items-center gap-3 bg-white border border-slate-100 shadow-sm rounded-full pl-5 pr-2 py-1.5 hover:border-indigo-200 transition-colors z-10 w-full justify-between sm:w-auto sm:justify-start">
@@ -903,13 +903,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const el = document.getElementById(`day-${todayStr}`);
         if (el) {
             const monthContent = el.closest('.month-content');
+            const sep = monthContent ? monthContent.previousElementSibling : null;
             if (monthContent && monthContent.classList.contains('hidden')) {
-                const toggleArea = monthContent.previousElementSibling.querySelector('.accordion-toggle-area');
+                const toggleArea = sep ? sep.querySelector('.accordion-toggle-area') : null;
                 if (toggleArea) toggleArea.click();
             }
             
             setTimeout(() => {
-                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                if (sep) {
+                    sep.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                
                 el.classList.add('ring-4', 'ring-indigo-400', 'ring-offset-2', 'transition-all');
                 setTimeout(() => el.classList.remove('ring-4', 'ring-indigo-400', 'ring-offset-2'), 2000);
             }, 100);
