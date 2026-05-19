@@ -38,27 +38,13 @@ async function fetchEvents(timeoutMs = 15000) {
 
         const data = await response.json();
         
-        // Transform GAS response into the expected events array
-        const events = [];
-        let idCounter = 1;
-        if (data && data.commitments) {
-            for (const [dateStr, dailyEvents] of Object.entries(data.commitments)) {
-                if (Array.isArray(dailyEvents)) {
-                    for (const evt of dailyEvents) {
-                        events.push({
-                            id: idCounter++,
-                            date: dateStr,
-                            title: evt.text || '',
-                            description: evt.time ? `Horário: ${evt.time}` : ''
-                        });
-                    }
-                }
-            }
+        // Retorna o objeto completo se vier do novo backend, ou um fallback vazio
+        if (data && data.events !== undefined) {
+            return data;
         }
-        return events;
-
-        // Mock data for demonstration purposes since we don't have a real URL
-        //return mockFetchData();
+        
+        // Fallback temporário caso o backend antigo ainda responda
+        return { events: [], config: { fixedRules: [] } };
     } catch (error) {
         if (error.name === 'AbortError') {
             console.log('Fetch request was aborted or timed out.');
@@ -72,25 +58,37 @@ async function fetchEvents(timeoutMs = 15000) {
 }
 
 /**
- * Generates mock events for demonstration
+ * Sends the current full state (events + rules) to the GAS backend
+ * @param {Object} stateData 
  */
-async function mockFetchData() {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 800));
+async function syncData(stateData) {
+    try {
+        const response = await fetch(WEB_APP_URL, {
+            method: 'POST',
+            body: JSON.stringify(stateData),
+            // Utilizando text/plain para evitar erro de CORS preflight no Google Apps Script
+            headers: {
+                'Content-Type': 'text/plain;charset=utf-8',
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return await response.json();
 
-    // Generate some random events in 2026
-    return [
-        { id: 1, date: '2026-05-15', title: 'Reunião de Pais', description: 'Reunião na escola às 19h' },
-        { id: 2, date: '2026-05-09', title: 'Festa de Aniversário', description: 'Aniversário do João' },
-        { id: 3, date: '2026-05-10', title: 'Almoço em Família', description: 'Almoço na casa da vó' },
-        { id: 4, date: '2026-06-12', title: 'Dentista Mel', description: 'Consulta de rotina' },
-        { id: 5, date: '2026-01-01', title: 'Ano Novo', description: 'Feriado' },
-        { id: 6, date: '2026-12-25', title: 'Natal', description: 'Feriado em família' }
-    ];
+        // Mock data for demonstration purposes since we don't have a real URL
+        //return mockFetchData();
+    } catch (error) {
+        console.error('Failed to sync data:', error);
+        throw error;
+    }
 }
 
 // Export for usage in other scripts
 window.api = {
     fetchEvents,
+    syncData,
     WEB_APP_URL
 };

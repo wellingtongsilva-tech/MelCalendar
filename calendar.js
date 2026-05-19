@@ -40,6 +40,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Core Logic ---
 
+    // Função central de salvamento na nuvem
+    async function saveStateToCloud() {
+        renderCalendar(); // Renderiza local primeiro para sensação de tempo real
+        try {
+            await window.api.syncData({
+                events: state.events,
+                config: state.config
+            });
+            // Backup no local storage por precaução
+            localStorage.setItem('melConfigRules2', JSON.stringify(state.config.fixedRules));
+        } catch(e) {
+            console.error("Falha ao sincronizar com a nuvem", e);
+        }
+    }
+
     function generateCalendarData() {
         const weeks = [];
         let currentWeek = [];
@@ -287,7 +302,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         renderDayEventsList();
-        renderCalendar();
+        saveStateToCloud();
         document.getElementById('day-add-event-form').reset();
     };
 
@@ -349,7 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         document.getElementById('rule-desc').value = '';
         renderRulesList();
-        renderCalendar();
+        saveStateToCloud();
     };
 
     window.calendar = {
@@ -388,7 +403,7 @@ document.addEventListener('DOMContentLoaded', () => {
         removeRule: (idx) => {
             state.config.fixedRules.splice(idx, 1);
             renderRulesList();
-            renderCalendar();
+            saveStateToCloud();
         }
     };
 
@@ -425,32 +440,37 @@ document.addEventListener('DOMContentLoaded', () => {
     async function initialize() {
         loadingIndicator.classList.remove('hidden');
         try {
-            state.events = await window.api.fetchEvents();
+            const cloudData = await window.api.fetchEvents();
             
-            const savedRules = localStorage.getItem('melConfigRules2');
-            if(savedRules) {
-                state.config.fixedRules = JSON.parse(savedRules);
+            if (cloudData && cloudData.events && cloudData.events.length > 0) {
+                // Nuvem já tem dados, carregar da nuvem
+                state.events = cloudData.events;
+                state.config = cloudData.config;
             } else {
-                // Seed standard alternating weekends
-                state.config.fixedRules = [
-                    { dayOfWeek: 6, type: 'Com Filhos', frequency: 'quinzenal', start: '2026-05-09', desc: 'Fim de semana alternado' },
-                    { dayOfWeek: 0, type: 'Com Filhos', frequency: 'quinzenal', start: '2026-05-10', desc: 'Fim de semana alternado' },
-                    { dayOfWeek: 6, type: 'Sem Filhos', frequency: 'quinzenal', start: '2026-05-16', desc: 'Fim de semana alternado' },
-                    { dayOfWeek: 0, type: 'Sem Filhos', frequency: 'quinzenal', start: '2026-05-17', desc: 'Fim de semana alternado' }
-                ];
+                // Nuvem está vazia, tentar ler backup ou iniciar com padrão
+                const savedRules = localStorage.getItem('melConfigRules2');
+                if(savedRules) {
+                    state.config.fixedRules = JSON.parse(savedRules);
+                } else {
+                    // Seed standard alternating weekends
+                    state.config.fixedRules = [
+                        { dayOfWeek: 6, type: 'Com Filhos', frequency: 'quinzenal', start: '2026-05-09', desc: 'Fim de semana alternado' },
+                        { dayOfWeek: 0, type: 'Com Filhos', frequency: 'quinzenal', start: '2026-05-10', desc: 'Fim de semana alternado' },
+                        { dayOfWeek: 6, type: 'Sem Filhos', frequency: 'quinzenal', start: '2026-05-16', desc: 'Fim de semana alternado' },
+                        { dayOfWeek: 0, type: 'Sem Filhos', frequency: 'quinzenal', start: '2026-05-17', desc: 'Fim de semana alternado' }
+                    ];
+                }
+                // Como não tinha nada na nuvem, faz um primeiro sync pra garantir que comece a salvar
+                saveStateToCloud();
             }
 
             state.isReady = true;
             renderCalendar();
         } catch (error) {
-            rootEl.innerHTML = `<div class="p-8 text-center text-red-500">Erro ao carregar eventos. Verifique o console.</div>`;
+            rootEl.innerHTML = `<div class="p-8 text-center text-red-500">Erro ao carregar eventos da nuvem. Verifique o console.</div>`;
         } finally {
             loadingIndicator.classList.add('hidden');
         }
-        
-        setInterval(() => {
-            localStorage.setItem('melConfigRules2', JSON.stringify(state.config.fixedRules));
-        }, 2000);
     }
 
     initialize();
