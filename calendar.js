@@ -346,17 +346,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const btnToggleAddEvent = document.getElementById('btn-toggle-add-event');
     if (btnToggleAddEvent) {
-        btnToggleAddEvent.addEventListener('click', () => {
+        btnToggleAddEvent.onclick = (e) => {
+            e.preventDefault();
             const formContainer = document.getElementById('add-event-form-container');
             const iconToggle = document.getElementById('icon-toggle-add-event');
             if (formContainer.classList.contains('hidden')) {
                 formContainer.classList.remove('hidden');
                 if (iconToggle) iconToggle.classList.add('rotate-180');
+                
+                // Em dispositivos móveis, garantir que o formulário apareça na tela
+                setTimeout(() => {
+                    formContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 100);
             } else {
                 formContainer.classList.add('hidden');
                 if (iconToggle) iconToggle.classList.remove('rotate-180');
             }
-        });
+        };
     }
 
     const btnCancelEdit = document.getElementById('btn-cancel-edit-event');
