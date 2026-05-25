@@ -30,6 +30,52 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedDate: null
     };
 
+    function getHolidays(year) {
+        const a = year % 19;
+        const b = Math.floor(year / 100);
+        const c = year % 100;
+        const d = Math.floor(b / 4);
+        const e = b % 4;
+        const f = Math.floor((b + 8) / 25);
+        const g = Math.floor((b - f + 1) / 3);
+        const h = (19 * a + b - d - g + 15) % 30;
+        const i = Math.floor(c / 4);
+        const k = c % 4;
+        const l = (32 + 2 * e + 2 * i - h - k) % 7;
+        const m = Math.floor((a + 11 * h + 22 * l) / 451);
+        const month = Math.floor((h + l - 7 * m + 114) / 31);
+        const day = ((h + l - 7 * m + 114) % 31) + 1;
+        
+        const pascoa = new Date(Date.UTC(year, month - 1, day));
+        const addDays = (date, days) => new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
+        
+        const carnaval = addDays(pascoa, -47);
+        const paixao = addDays(pascoa, -2);
+        const corpusChristi = addDays(pascoa, 60);
+
+        const fmt = (d) => d.toISOString().split('T')[0];
+
+        return [
+            { id: `hol-${year}-01-01`, date: `${year}-01-01`, title: 'Feriado: Ano Novo', isHoliday: true },
+            { id: `hol-${year}-carnaval`, date: fmt(carnaval), title: 'Feriado: Carnaval', isHoliday: true },
+            { id: `hol-${year}-paixao`, date: fmt(paixao), title: 'Feriado: Paixão de Cristo', isHoliday: true },
+            { id: `hol-${year}-pascoa`, date: fmt(pascoa), title: 'Feriado: Páscoa', isHoliday: true },
+            { id: `hol-${year}-04-21`, date: `${year}-04-21`, title: 'Feriado: Tiradentes', isHoliday: true },
+            { id: `hol-${year}-05-01`, date: `${year}-05-01`, title: 'Feriado: Dia do Trabalhador', isHoliday: true },
+            { id: `hol-${year}-corpus`, date: fmt(corpusChristi), title: 'Feriado: Corpus Christi', isHoliday: true },
+            { id: `hol-${year}-09-07`, date: `${year}-09-07`, title: 'Feriado: Independência do Brasil', isHoliday: true },
+            { id: `hol-${year}-10-12`, date: `${year}-10-12`, title: 'Feriado: Nossa Senhora Aparecida', isHoliday: true },
+            { id: `hol-${year}-11-02`, date: `${year}-11-02`, title: 'Feriado: Finados', isHoliday: true },
+            { id: `hol-${year}-11-15`, date: `${year}-11-15`, title: 'Feriado: Proclamação da República', isHoliday: true },
+            { id: `hol-${year}-11-20`, date: `${year}-11-20`, title: 'Feriado: Consciência Negra', isHoliday: true },
+            { id: `hol-${year}-12-25`, date: `${year}-12-25`, title: 'Feriado: Natal', isHoliday: true }
+        ];
+    }
+
+    function getAllEvents() {
+        return [...getHolidays(YEAR), ...state.events];
+    }
+
     // --- DOM Elements ---
     const rootEl = document.getElementById('calendar-root');
     const searchInput = document.getElementById('search-input');
@@ -411,7 +457,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const isDimmed = !day.isCurrentYear;
                 
                 // Filter events
-                let dayEvents = state.events.filter(e => e.date === day.dateStr);
+                let dayEvents = getAllEvents().filter(e => e.date === day.dateStr);
                 
                 let filteredEvents = dayEvents.filter(e => {
                     let match = true;
@@ -596,7 +642,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderDayEventsList() {
         const container = document.getElementById('day-events-list');
-        const evts = state.events.filter(e => e.date === state.selectedDate);
+        const evts = getAllEvents().filter(e => e.date === state.selectedDate);
         
         if (evts.length === 0) {
             container.innerHTML = `<p class="text-slate-400 text-sm font-medium text-center py-6">Nenhum evento para esta data.</p>`;
@@ -613,13 +659,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${evt.description ? `<p class="text-xs font-medium text-slate-500 mt-1.5 leading-relaxed">${evt.description}</p>` : ''}
                 </div>
                 <div class="flex items-center gap-1 opacity-100 sm:opacity-50 group-hover:opacity-100 transition-opacity self-end sm:self-auto">
-                    <button onclick="window.calendar.editEvent(${evt.id})" class="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 p-2 rounded-lg border border-transparent transition-all" title="Editar evento">
+                    ${!evt.isHoliday ? `
+                    <button onclick="window.calendar.editEvent('${evt.id}')" class="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 p-2 rounded-lg border border-transparent transition-all" title="Editar evento">
                         <i class="ph ph-pencil-simple text-lg"></i>
                     </button>
-                    <button onclick="window.calendar.deleteEvent(${evt.id})" class="text-slate-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg border border-transparent transition-all" title="Excluir evento">
+                    <button onclick="window.calendar.deleteEvent('${evt.id}')" class="text-slate-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg border border-transparent transition-all" title="Excluir evento">
                         <i class="ph ph-trash text-lg"></i>
                     </button>
-                    <button onclick="window.calendar.exportEvent(${evt.id})" class="text-indigo-500 hover:text-white hover:bg-indigo-500 p-2 rounded-lg border border-indigo-100 transition-all" title="Exportar para agenda">
+                    ` : ''}
+                    <button onclick="window.calendar.exportEvent('${evt.id}')" class="text-indigo-500 hover:text-white hover:bg-indigo-500 p-2 rounded-lg border border-indigo-100 transition-all" title="Exportar para agenda">
                         <i class="ph ph-download-simple text-lg"></i>
                     </button>
                 </div>
@@ -793,7 +841,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.calendar = {
         exportEvent: (eventId) => {
-            const evt = state.events.find(e => e.id === eventId);
+            const evt = getAllEvents().find(e => e.id == eventId);
             if (!evt) return;
             const dateObj = new Date(evt.date);
             const dateStr = dateObj.toISOString().replace(/-/g, '').split('T')[0];
@@ -830,14 +878,16 @@ document.addEventListener('DOMContentLoaded', () => {
             saveStateToCloud();
         },
         deleteEvent: (id) => {
+            if (typeof id === 'string' && id.startsWith('hol-')) return;
             if (confirm('Tem certeza que deseja excluir este evento?')) {
-                state.events = state.events.filter(e => e.id !== id);
+                state.events = state.events.filter(e => e.id != id);
                 renderDayEventsList();
                 saveStateToCloud();
             }
         },
         editEvent: (id) => {
-            const evt = state.events.find(e => e.id === id);
+            if (typeof id === 'string' && id.startsWith('hol-')) return;
+            const evt = state.events.find(e => e.id == id);
             if (evt) {
                 document.getElementById('day-event-id').value = evt.id;
                 document.getElementById('day-event-title').value = evt.title;
@@ -918,7 +968,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnExportAll = document.getElementById('btn-export-all');
     if (btnExportAll) {
         btnExportAll.addEventListener('click', () => {
-            if (state.events.length === 0) {
+            if (getAllEvents().length === 0) {
                 alert("Não há eventos para exportar.");
                 return;
             }
@@ -927,7 +977,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 'VERSION:2.0',
                 'PRODID:-//Agenda Mel//PT'
             ];
-            state.events.forEach(evt => {
+            getAllEvents().forEach(evt => {
                 const dateObj = new Date(evt.date);
                 const dateStr = dateObj.toISOString().replace(/-/g, '').split('T')[0];
                 const endDateObj = new Date(dateObj);
