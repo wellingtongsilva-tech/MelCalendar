@@ -12,6 +12,7 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body class="text-slate-800 flex flex-col min-h-screen">
     <!-- Splash Screen -->
@@ -44,6 +45,11 @@
 
                 <!-- Actions -->
                 <div class="flex-1 flex justify-end items-center gap-1.5 sm:gap-2 relative">
+                    <div id="credits-badge" class="inline-flex items-center justify-center px-3 sm:px-4 py-2 rounded-full shadow-sm bg-gradient-to-r from-amber-400 to-orange-500 text-white font-bold text-sm transition-all border border-transparent gap-1.5 cursor-pointer hover:shadow-md hover:scale-105" title="Créditos IA">
+                        <i class="ph-fill ph-lightning text-lg"></i>
+                        <span class="hidden sm:inline" id="credits-display">10</span>
+                    </div>
+
                     <button id="btn-today" class="inline-flex items-center justify-center px-3 sm:px-5 py-2 rounded-full shadow-sm text-indigo-700 bg-indigo-50 hover:bg-indigo-100 font-bold text-sm transition-all border border-indigo-100 gap-1.5" title="Ir para Hoje">
                         <i class="ph ph-calendar-star sm:hidden text-lg"></i>
                         <span class="hidden sm:inline">Hoje</span>
@@ -141,6 +147,12 @@
     <main class="flex-1 mt-[136px] sm:mt-40 max-w-7xl mx-auto w-full px-2 sm:px-6 lg:px-8 pb-12">
         <div id="calendar-root" class="calendar-container flex flex-col p-2 sm:p-4 gap-4 mt-4">
             <!-- Weeks -->
+        <div class="mt-8 border-t border-slate-100 pt-8 pb-4">
+            <!-- AdSense Placeholder -->
+            <div class="w-full h-[100px] bg-slate-100 rounded-xl border border-slate-200 border-dashed flex items-center justify-center text-slate-400 font-bold text-sm tracking-wide">
+                ESPAÇO RESERVADO PARA ANÚNCIOS (ADSENSE)
+            </div>
+        </div>
         </div>
     </main>
 
@@ -191,6 +203,17 @@
                                 <div>
                                     <textarea id="day-event-desc" rows="2" placeholder="Descrição (opcional)" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm outline-none transition-all"></textarea>
                                 </div>
+                                <div class="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100/50">
+                                    <label class="flex items-center gap-2 cursor-pointer mb-2">
+                                        <input type="checkbox" id="day-event-needs-support" class="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4 border-slate-300">
+                                        <span class="text-sm font-bold text-indigo-900">Preciso de ajuda da Rede de Apoio</span>
+                                    </label>
+                                    <div id="day-event-support-person-container" class="hidden">
+                                        <select id="day-event-support-person" class="w-full bg-white border border-indigo-200 rounded-xl py-2 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                                            <option value="">Selecione alguém (opcional)...</option>
+                                        </select>
+                                    </div>
+                                </div>
                                 <div class="grid grid-cols-2 gap-3">
                                     <div>
                                         <label class="block text-xs font-bold text-slate-500 mb-2">Horário (opcional)</label>
@@ -221,7 +244,7 @@
             <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" id="settings-modal-overlay"></div>
             <div class="modal-content relative rounded-[2rem] w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
                 <div class="px-6 py-5 border-b border-slate-100/50 flex justify-between items-center">
-                    <h3 class="text-xl font-bold text-slate-800">Configurações de Escala</h3>
+                    <h3 class="text-xl font-bold text-slate-800">Configurações do App</h3>
                     <button type="button" id="btn-close-settings" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors">
                         <i class="ph ph-x text-lg"></i>
                     </button>
@@ -229,8 +252,30 @@
                 
                 <div class="p-6 overflow-y-auto flex-1 space-y-6">
                     <p class="text-sm text-slate-500 font-medium leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">
-                        Defina dias e repetições para a sua escala (ex: "Sábado Com Filhos, Quinzenal, a partir de hoje"). Você tem controle total sobre quais dias são com ou sem filhos e com que frequência eles se repetem.
+                        Defina as regras da sua escala e gerencie sua rede de apoio abaixo.
                     </p>
+
+                    <!-- Support Network Config -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm mt-6">
+                        <h4 class="font-bold text-slate-800 mb-4 text-sm flex items-center gap-2">
+                            <i class="ph-fill ph-users text-orange-500 text-lg"></i> Rede de Apoio
+                        </h4>
+                        <div id="support-network-list" class="space-y-3 mb-4">
+                            <!-- Support network populated here -->
+                        </div>
+                        <div class="grid grid-cols-2 gap-3 mb-3">
+                            <input type="text" id="support-name" placeholder="Nome (Ex: Vó Maria)" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <input type="text" id="support-relation" placeholder="Relação (Ex: Avó)" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+                        <button type="button" id="btn-add-support" class="w-full flex justify-center py-2.5 px-4 border border-slate-200 rounded-xl shadow-sm text-sm font-bold text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 focus:outline-none transition-all active:scale-95">
+                            Adicionar à Rede
+                        </button>
+                    </div>
+
+                    <hr class="border-slate-100 my-6">
+                    <h4 class="font-bold text-slate-800 mb-4 text-sm flex items-center gap-2">
+                        <i class="ph-fill ph-calendar text-indigo-500 text-lg"></i> Regras de Escala
+                    </h4>
                     
                     <div id="rules-list" class="space-y-3">
                         <!-- Rules populated here -->

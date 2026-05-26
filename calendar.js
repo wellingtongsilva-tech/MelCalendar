@@ -16,7 +16,9 @@ document.addEventListener('DOMContentLoaded', () => {
         config: {
             appTitle: 'Agenda Mel',
             fixedRules: [], // Array of { dayOfWeek, type, frequency, start, desc }
-            dayOverrides: {} // Overrides: 'YYYY-MM-DD': 'Com Filhos'|'Sem Filhos'
+            dayOverrides: {}, // Overrides: 'YYYY-MM-DD': 'Com Filhos'|'Sem Filhos'
+            supportNetwork: [], // Array of { id, name, relation }
+            credits: 10
         },
         search: {
             query: '',
@@ -640,6 +642,13 @@ document.addEventListener('DOMContentLoaded', () => {
         dayModal.classList.remove('hidden');
     }
 
+    function updateCreditsDisplay() {
+        const display = document.getElementById('credits-display');
+        if (display) {
+            display.textContent = state.config.credits;
+        }
+    }
+
     function renderDayEventsList() {
         const container = document.getElementById('day-events-list');
         const evts = getAllEvents().filter(e => e.date === state.selectedDate);
@@ -657,6 +666,17 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${evt.time ? `<span class="text-[10px] font-bold bg-indigo-50 text-indigo-500 px-1.5 py-0.5 rounded">${evt.time}</span>` : ''}
                     </h5>
                     ${evt.description ? `<p class="text-xs font-medium text-slate-500 mt-1.5 leading-relaxed">${evt.description}</p>` : ''}
+                    ${evt.needsSupport ? `
+                    <div class="mt-2 bg-orange-50 border border-orange-100 p-2 rounded-lg flex items-center justify-between">
+                        <div class="flex items-center gap-2 text-orange-700 text-xs font-bold">
+                            <i class="ph-fill ph-lifebuoy text-lg"></i>
+                            Rede de Apoio Acionada
+                            ${evt.supportPersonId ? ` - ${getSupportPersonName(evt.supportPersonId)}` : ''}
+                        </div>
+                        <button onclick="window.calendar.generateWhatsAppCard('${evt.id}')" class="text-orange-600 hover:text-white hover:bg-orange-500 px-2.5 py-1 rounded-md bg-white border border-orange-200 transition-colors shadow-sm font-bold text-xs flex items-center gap-1">
+                            <i class="ph-fill ph-whatsapp text-sm"></i> Enviar
+                        </button>
+                    </div>` : ''}
                 </div>
                 <div class="flex items-center gap-1 opacity-100 sm:opacity-50 group-hover:opacity-100 transition-opacity self-end sm:self-auto">
                     ${!evt.isHoliday ? `
@@ -690,6 +710,43 @@ document.addEventListener('DOMContentLoaded', () => {
             formContainer.classList.add('hidden');
             if (iconToggle) iconToggle.classList.remove('rotate-180');
         }
+        
+        document.getElementById('day-event-needs-support').checked = false;
+        document.getElementById('day-event-support-person-container').classList.add('hidden');
+        document.getElementById('day-event-support-person').value = '';
+    }
+
+    const checkboxNeedsSupport = document.getElementById('day-event-needs-support');
+    if (checkboxNeedsSupport) {
+        checkboxNeedsSupport.addEventListener('change', (e) => {
+            const container = document.getElementById('day-event-support-person-container');
+            if (e.target.checked) {
+                container.classList.remove('hidden');
+                populateSupportSelect();
+            } else {
+                container.classList.add('hidden');
+                document.getElementById('day-event-support-person').value = '';
+            }
+        });
+    }
+
+    function populateSupportSelect() {
+        const select = document.getElementById('day-event-support-person');
+        select.innerHTML = '<option value="">Selecione alguém (opcional)...</option>';
+        if (state.config.supportNetwork) {
+            state.config.supportNetwork.forEach(person => {
+                const opt = document.createElement('option');
+                opt.value = person.id;
+                opt.textContent = `${person.name} (${person.relation})`;
+                select.appendChild(opt);
+            });
+        }
+    }
+
+    function getSupportPersonName(id) {
+        if (!state.config.supportNetwork) return 'Alguém';
+        const person = state.config.supportNetwork.find(p => p.id == id);
+        return person ? person.name : 'Alguém';
     }
 
     const btnToggleAddEvent = document.getElementById('btn-toggle-add-event');
@@ -736,6 +793,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const desc = document.getElementById('day-event-desc').value.trim();
         const time = document.getElementById('day-event-time').value;
         const end = document.getElementById('day-event-end').value;
+        const needsSupport = document.getElementById('day-event-needs-support').checked;
+        const supportPersonId = document.getElementById('day-event-support-person').value;
 
         if (eventId) {
             // Edição
@@ -745,7 +804,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     ...state.events[idx],
                     title: title,
                     description: desc,
-                    time: time
+                    time: time,
+                    needsSupport: needsSupport,
+                    supportPersonId: supportPersonId
                 };
             }
         } else {
@@ -767,7 +828,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     date: formatDateStr(current),
                     title: title,
                     description: desc,
-                    time: time
+                    time: time,
+                    needsSupport: needsSupport,
+                    supportPersonId: supportPersonId
                 });
                 current.setDate(current.getDate() + 1);
             }
@@ -784,22 +847,46 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('rules-list');
         if (state.config.fixedRules.length === 0) {
             container.innerHTML = `<p class="text-slate-400 text-sm font-medium text-center py-4">Nenhuma regra de escala definida.</p>`;
+        } else {
+            const daysMap = {0: 'Domingo', 1: 'Segunda', 2: 'Terça', 3: 'Quarta', 4: 'Quinta', 5: 'Sexta', 6: 'Sábado'};
+            container.innerHTML = state.config.fixedRules.map((r, idx) => `
+                <div class="flex items-center justify-between bg-white p-4 border border-slate-100 rounded-xl shadow-sm hover:border-indigo-100 transition-colors">
+                    <div>
+                        <div class="font-bold text-sm text-slate-800">${daysMap[r.dayOfWeek]} <span class="text-xs text-slate-400 font-medium ml-1">(${r.frequency})</span></div>
+                        <div class="flex items-center gap-2 mt-2">
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md ${r.type === 'Com Filhos' ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'}">${r.type}</span>
+                            <span class="text-xs font-semibold text-slate-500">Início: ${r.start.split('-').reverse().join('/')}</span>
+                        </div>
+                        ${r.desc ? `<div class="text-xs font-medium text-slate-500 mt-2">${r.desc}</div>` : ''}
+                    </div>
+                    <button onclick="window.calendar.removeRule(${idx})" class="text-red-400 hover:text-white hover:bg-red-500 p-2 rounded-lg transition-colors border border-transparent hover:border-red-600">
+                        <i class="ph ph-trash text-lg"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+    }
+
+    function renderSupportNetworkList() {
+        const container = document.getElementById('support-network-list');
+        if (!state.config.supportNetwork || state.config.supportNetwork.length === 0) {
+            container.innerHTML = `<p class="text-slate-400 text-sm font-medium text-center py-2">Ninguém cadastrado na Rede de Apoio.</p>`;
             return;
         }
 
-        const daysMap = {0: 'Domingo', 1: 'Segunda', 2: 'Terça', 3: 'Quarta', 4: 'Quinta', 5: 'Sexta', 6: 'Sábado'};
-        container.innerHTML = state.config.fixedRules.map((r, idx) => `
-            <div class="flex items-center justify-between bg-white p-4 border border-slate-100 rounded-xl shadow-sm hover:border-indigo-100 transition-colors">
-                <div>
-                    <div class="font-bold text-sm text-slate-800">${daysMap[r.dayOfWeek]} <span class="text-xs text-slate-400 font-medium ml-1">(${r.frequency})</span></div>
-                    <div class="flex items-center gap-2 mt-2">
-                        <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md ${r.type === 'Com Filhos' ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'}">${r.type}</span>
-                        <span class="text-xs font-semibold text-slate-500">Início: ${r.start.split('-').reverse().join('/')}</span>
+        container.innerHTML = state.config.supportNetwork.map(person => `
+            <div class="flex items-center justify-between bg-slate-50 p-3 border border-slate-100 rounded-xl shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-bold">
+                        ${person.name.charAt(0).toUpperCase()}
                     </div>
-                    ${r.desc ? `<div class="text-xs font-medium text-slate-500 mt-2">${r.desc}</div>` : ''}
+                    <div>
+                        <div class="font-bold text-sm text-slate-800">${person.name}</div>
+                        <div class="text-xs font-medium text-slate-500">${person.relation}</div>
+                    </div>
                 </div>
-                <button onclick="window.calendar.removeRule(${idx})" class="text-red-400 hover:text-white hover:bg-red-500 p-2 rounded-lg transition-colors border border-transparent hover:border-red-600">
-                    <i class="ph ph-trash text-lg"></i>
+                <button onclick="window.calendar.removeSupport('${person.id}')" class="text-red-400 hover:text-white hover:bg-red-500 p-1.5 rounded-lg transition-colors">
+                    <i class="ph ph-trash text-base"></i>
                 </button>
             </div>
         `).join('');
@@ -809,6 +896,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Set default start date to today in the form
         document.getElementById('rule-start').value = getTodayStr();
         renderRulesList();
+        renderSupportNetworkList();
         settingsModal.classList.remove('hidden');
     };
 
@@ -839,7 +927,34 @@ document.addEventListener('DOMContentLoaded', () => {
         saveStateToCloud();
     };
 
+    document.getElementById('btn-add-support').onclick = () => {
+        const name = document.getElementById('support-name').value.trim();
+        const relation = document.getElementById('support-relation').value.trim();
+        
+        if (!name) return alert("Digite o nome do contato de apoio.");
+        
+        if (!state.config.supportNetwork) state.config.supportNetwork = [];
+        
+        state.config.supportNetwork.push({
+            id: 'sup-' + Date.now(),
+            name: name,
+            relation: relation || 'Apoio'
+        });
+        
+        document.getElementById('support-name').value = '';
+        document.getElementById('support-relation').value = '';
+        renderSupportNetworkList();
+        saveStateToCloud();
+    };
+
     window.calendar = {
+        removeSupport: (id) => {
+            if (confirm("Remover este contato da rede de apoio?")) {
+                state.config.supportNetwork = state.config.supportNetwork.filter(p => p.id !== id);
+                renderSupportNetworkList();
+                saveStateToCloud();
+            }
+        },
         exportEvent: (eventId) => {
             const evt = getAllEvents().find(e => e.id == eventId);
             if (!evt) return;
@@ -873,9 +988,99 @@ document.addEventListener('DOMContentLoaded', () => {
             URL.revokeObjectURL(url);
         },
         removeRule: (idx) => {
-            state.config.fixedRules.splice(idx, 1);
-            renderRulesList();
+            if (confirm("Tem certeza que deseja remover esta regra de escala?")) {
+                state.config.fixedRules.splice(idx, 1);
+                renderRulesList();
+                saveStateToCloud();
+            }
+        },
+        generateWhatsAppCard: async (eventId) => {
+            const evt = getAllEvents().find(e => e.id == eventId);
+            if (!evt) return;
+
+            if (state.config.credits <= 0) {
+                alert("Você não tem créditos suficientes. Recarregue seus Créditos IA para gerar cards.");
+                return;
+            }
+
+            // Deduct credit
+            state.config.credits -= 1;
+            updateCreditsDisplay();
             saveStateToCloud();
+
+            // Create temporary hidden container for the card
+            const dObj = new Date(evt.date);
+            const dateObj = new Date(dObj.getTime() + Math.abs(dObj.getTimezoneOffset() * 60000));
+            const formattedDate = dateObj.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+            
+            const supportName = evt.supportPersonId ? getSupportPersonName(evt.supportPersonId) : 'Alguém';
+            const firstName = state.config.appTitle.split(' ')[0] || 'A mãe';
+
+            const card = document.createElement('div');
+            card.style.position = 'absolute';
+            card.style.top = '-9999px';
+            card.style.left = '-9999px';
+            card.style.width = '400px';
+            card.style.padding = '30px';
+            card.style.background = 'linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%)';
+            card.style.fontFamily = "'Plus Jakarta Sans', sans-serif";
+            card.innerHTML = `
+                <div style="background: white; border-radius: 24px; padding: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; border: 2px solid #ffedd5;">
+                    <div style="font-size: 40px; margin-bottom: 15px;">🆘💖</div>
+                    <h2 style="margin: 0; color: #1e293b; font-size: 24px; font-weight: 800;">Preciso da sua ajuda!</h2>
+                    <p style="color: #64748b; font-size: 16px; margin-top: 5px; font-weight: 500;">Oie ${supportName}, pode me ajudar nesse dia?</p>
+                    
+                    <div style="margin-top: 25px; background: #fff7ed; border-radius: 16px; padding: 20px; border: 1px dashed #fdba74;">
+                        <h3 style="margin: 0; color: #c2410c; font-size: 20px; font-weight: 800;">${evt.title}</h3>
+                        <p style="color: #9a3412; font-size: 15px; margin-top: 8px; font-weight: 600;">📅 ${formattedDate}</p>
+                        ${evt.time ? `<p style="color: #9a3412; font-size: 15px; margin-top: 4px; font-weight: 600;">⏰ ${evt.time}</p>` : ''}
+                        ${evt.description ? `<p style="color: #c2410c; font-size: 14px; margin-top: 15px; font-style: italic;">"${evt.description}"</p>` : ''}
+                    </div>
+                    
+                    <p style="color: #94a3b8; font-size: 12px; margin-top: 25px; font-weight: 600;">Gerado por Agenda Mel • Mãe Solo</p>
+                </div>
+            `;
+            document.body.appendChild(card);
+
+            try {
+                // Ensure fonts are loaded before capturing
+                await document.fonts.ready;
+                
+                const canvas = await html2canvas(card, { scale: 2, useCORS: true, backgroundColor: null });
+                document.body.removeChild(card);
+                
+                canvas.toBlob(async (blob) => {
+                    const file = new File([blob], "ajuda_agenda.jpg", { type: "image/jpeg" });
+                    
+                    const shareData = {
+                        title: 'Pedido de Ajuda - Agenda Mel',
+                        text: `Oi! Preciso de ajuda com: ${evt.title} no dia ${formattedDate}. Veja os detalhes na imagem!`,
+                        files: [file]
+                    };
+
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        try {
+                            await navigator.share(shareData);
+                        } catch (err) {
+                            console.error('Erro ao compartilhar', err);
+                        }
+                    } else {
+                        // Fallback Se canShare não funcionar (ex: Desktop)
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(blob);
+                        link.download = 'pedido_ajuda.jpg';
+                        link.click();
+                        
+                        // Copy text to clipboard and open WhatsApp Web
+                        const waText = encodeURIComponent(`Oi! Preciso de ajuda com: ${evt.title} no dia ${formattedDate}.\nBaixei a imagem do convite para você ver os detalhes!`);
+                        window.open(`https://wa.me/?text=${waText}`, '_blank');
+                    }
+                }, 'image/jpeg', 0.9);
+            } catch (e) {
+                console.error("Failed to generate image", e);
+                document.body.removeChild(card);
+                alert("Ocorreu um erro ao gerar a imagem.");
+            }
         },
         deleteEvent: (id) => {
             if (typeof id === 'string' && id.startsWith('hol-')) return;
@@ -895,6 +1100,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('day-event-time').value = evt.time || '';
                 document.getElementById('day-event-end').value = '';
                 document.getElementById('day-event-end-container').classList.add('hidden');
+                
+                const needsSupportCheckbox = document.getElementById('day-event-needs-support');
+                if (needsSupportCheckbox) {
+                    needsSupportCheckbox.checked = evt.needsSupport || false;
+                    const container = document.getElementById('day-event-support-person-container');
+                    if (evt.needsSupport) {
+                        container.classList.remove('hidden');
+                        populateSupportSelect();
+                        document.getElementById('day-event-support-person').value = evt.supportPersonId || '';
+                    } else {
+                        container.classList.add('hidden');
+                        document.getElementById('day-event-support-person').value = '';
+                    }
+                }
                 
                 document.getElementById('btn-save-day-event').textContent = 'Atualizar Evento';
                 document.getElementById('btn-cancel-edit-event').classList.remove('hidden');
@@ -1045,9 +1264,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Nuvem tem dados (eventos ou regras), carregar da nuvem
                     state.events = cloudData.events || [];
                     state.config = cloudData.config;
+                    if (!state.config.supportNetwork) state.config.supportNetwork = [];
+                    if (typeof state.config.credits === 'undefined') state.config.credits = 10;
                     if (state.config.appTitle) {
                         appTitleDisplay.textContent = state.config.appTitle;
                     }
+                    updateCreditsDisplay();
                 } else {
                     // Nuvem está vazia. Tentar carregar fallback local ou criar semente
                     const savedRules = localStorage.getItem('melConfigRules2');
