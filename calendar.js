@@ -710,6 +710,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 borderColor = 'border-teal-300 shadow-teal-100';
                 titleColor = 'text-teal-800';
                 iconStr = '🎈 ';
+            } else if (evt.isHealth) {
+                bgColor = 'bg-sky-50/30';
+                borderColor = 'border-sky-300 shadow-sky-100';
+                titleColor = 'text-sky-800';
+                iconStr = '🩺 ';
             }
 
             const communitySpot = evt.communitySpotId && state.config.communitySpots ? state.config.communitySpots.find(s => s.id === evt.communitySpotId) : null;
@@ -780,6 +785,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if(communitySpotContainer) communitySpotContainer.classList.add('hidden');
         const communitySpotSelect = document.getElementById('day-event-community-spot');
         if(communitySpotSelect) communitySpotSelect.value = '';
+        
+        const chkHealth = document.getElementById('day-event-is-health');
+        if(chkHealth) chkHealth.checked = false;
     }
 
     const checkboxNeedsSupport = document.getElementById('day-event-needs-support');
@@ -880,6 +888,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const isCommunityElement = document.getElementById('day-event-is-community');
         const isCommunity = isCommunityElement ? isCommunityElement.checked : false;
         const communitySpotId = document.getElementById('day-event-community-spot').value;
+        const isHealthElement = document.getElementById('day-event-is-health');
+        const isHealth = isHealthElement ? isHealthElement.checked : false;
 
         if (eventId) {
             // Edição
@@ -894,7 +904,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     supportPersonId: supportPersonId,
                     isSelfCare: isSelfCare,
                     isCommunity: isCommunity,
-                    communitySpotId: communitySpotId
+                    communitySpotId: communitySpotId,
+                    isHealth: isHealth
                 };
             }
         } else {
@@ -921,7 +932,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     supportPersonId: supportPersonId,
                     isSelfCare: isSelfCare,
                     isCommunity: isCommunity,
-                    communitySpotId: communitySpotId
+                    communitySpotId: communitySpotId,
+                    isHealth: isHealth
                 });
                 current.setDate(current.getDate() + 1);
             }
@@ -997,6 +1009,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function renderHealthRecordsList() {
+        const container = document.getElementById('health-records-list');
+        if (!state.config.healthRecords || state.config.healthRecords.length === 0) {
+            container.innerHTML = `<p class="text-slate-400 text-sm font-medium text-center py-2">Nenhum registro de saúde.</p>`;
+            return;
+        }
+
+        container.innerHTML = state.config.healthRecords.map(record => `
+            <div class="flex items-center justify-between bg-slate-50 p-3 border border-slate-100 rounded-xl shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-sky-100 text-sky-600 flex items-center justify-center font-bold">
+                        <i class="ph-fill ph-stethoscope text-xl"></i>
+                    </div>
+                    <div>
+                        <div class="font-bold text-sm text-slate-800">${record.name}</div>
+                        <div class="text-xs font-medium text-slate-500">${record.date}</div>
+                    </div>
+                </div>
+                <button onclick="window.calendar.removeHealthRecord('${record.id}')" class="text-red-400 hover:text-white hover:bg-red-500 p-1.5 rounded-lg transition-colors">
+                    <i class="ph ph-trash text-base"></i>
+                </button>
+            </div>
+        `).join('');
+    }
+
     function renderSupportNetworkList() {
         const container = document.getElementById('support-network-list');
         if (!state.config.supportNetwork || state.config.supportNetwork.length === 0) {
@@ -1028,6 +1065,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderRulesList();
         renderSupportNetworkList();
         renderCommunitySpotsList();
+        renderHealthRecordsList();
         settingsModal.classList.remove('hidden');
     };
 
@@ -1099,7 +1137,35 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+    const btnAddHealthRecord = document.getElementById('btn-add-health-record');
+    if(btnAddHealthRecord) {
+        btnAddHealthRecord.onclick = () => {
+            const name = document.getElementById('health-record-name').value.trim();
+            const dateStr = document.getElementById('health-record-date').value.trim();
+            if (!name) return alert('Nome do item é obrigatório!');
+            
+            if (!state.config.healthRecords) state.config.healthRecords = [];
+            state.config.healthRecords.push({
+                id: 'health_' + Date.now(),
+                name: name,
+                date: dateStr || 'Sem data'
+            });
+            
+            document.getElementById('health-record-name').value = '';
+            document.getElementById('health-record-date').value = '';
+            renderHealthRecordsList();
+            saveStateToCloud();
+        };
+    }
+
     window.calendar = {
+        removeHealthRecord: (id) => {
+            if (confirm("Remover este registro de saúde?")) {
+                state.config.healthRecords = state.config.healthRecords.filter(p => p.id !== id);
+                renderHealthRecordsList();
+                saveStateToCloud();
+            }
+        },
         removeCommunitySpot: (id) => {
             if (confirm("Remover este local da comunidade?")) {
                 state.config.communitySpots = state.config.communitySpots.filter(p => p.id !== id);
@@ -1290,6 +1356,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         document.getElementById('day-event-community-spot').value = '';
                     }
                 }
+                
+                const chkHealth = document.getElementById('day-event-is-health');
+                if(chkHealth) chkHealth.checked = evt.isHealth || false;
                 
                 document.getElementById('btn-save-day-event').textContent = 'Atualizar Evento';
                 document.getElementById('btn-cancel-edit-event').classList.remove('hidden');
