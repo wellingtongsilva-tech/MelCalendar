@@ -694,14 +694,35 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        container.innerHTML = evts.map(evt => `
-            <div class="bg-white border ${evt.isSelfCare ? 'border-pink-300 shadow-pink-100 bg-pink-50/30' : 'border-slate-100'} shadow-sm p-4 rounded-xl flex flex-col sm:flex-row justify-between sm:items-start gap-3 group hover:border-indigo-200 transition-colors">
+        container.innerHTML = evts.map(evt => {
+            let bgColor = 'bg-white';
+            let borderColor = 'border-slate-100';
+            let titleColor = 'text-slate-800';
+            let iconStr = '';
+
+            if (evt.isSelfCare) {
+                bgColor = 'bg-pink-50/30';
+                borderColor = 'border-pink-300 shadow-pink-100';
+                titleColor = 'text-pink-800';
+                iconStr = '❤️ ';
+            } else if (evt.isCommunity) {
+                bgColor = 'bg-teal-50/30';
+                borderColor = 'border-teal-300 shadow-teal-100';
+                titleColor = 'text-teal-800';
+                iconStr = '🎈 ';
+            }
+
+            const communitySpot = evt.communitySpotId && state.config.communitySpots ? state.config.communitySpots.find(s => s.id === evt.communitySpotId) : null;
+
+            return `
+            <div class="${bgColor} border ${borderColor} shadow-sm p-4 rounded-xl flex flex-col sm:flex-row justify-between sm:items-start gap-3 group hover:border-indigo-200 transition-colors">
                 <div class="flex-1">
-                    <h5 class="font-bold ${evt.isSelfCare ? 'text-pink-800' : 'text-slate-800'} text-sm flex items-center gap-2">
-                        ${evt.isSelfCare ? '❤️ ' : ''}${evt.title}
+                    <h5 class="font-bold ${titleColor} text-sm flex items-center gap-2">
+                        ${iconStr}${evt.title}
                         ${evt.time ? `<span class="text-[10px] font-bold bg-indigo-50 text-indigo-500 px-1.5 py-0.5 rounded">${evt.time}</span>` : ''}
                     </h5>
                     ${evt.description ? `<p class="text-xs font-medium text-slate-500 mt-1.5 leading-relaxed">${evt.description}</p>` : ''}
+                    ${communitySpot ? `<p class="text-xs font-bold text-teal-600 mt-1 flex items-center gap-1"><i class="ph-fill ph-map-pin"></i> ${communitySpot.name} (${communitySpot.type})</p>` : ''}
                     ${evt.needsSupport ? `
                     <div class="mt-2 bg-orange-50 border border-orange-100 p-2 rounded-lg flex items-center justify-between">
                         <div class="flex items-center gap-2 text-orange-700 text-xs font-bold">
@@ -752,6 +773,13 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('day-event-support-person').value = '';
         const chkSelfCare = document.getElementById('day-event-is-self-care');
         if(chkSelfCare) chkSelfCare.checked = false;
+        
+        const chkCommunity = document.getElementById('day-event-is-community');
+        if(chkCommunity) chkCommunity.checked = false;
+        const communitySpotContainer = document.getElementById('day-event-community-spot-container');
+        if(communitySpotContainer) communitySpotContainer.classList.add('hidden');
+        const communitySpotSelect = document.getElementById('day-event-community-spot');
+        if(communitySpotSelect) communitySpotSelect.value = '';
     }
 
     const checkboxNeedsSupport = document.getElementById('day-event-needs-support');
@@ -764,6 +792,20 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 container.classList.add('hidden');
                 document.getElementById('day-event-support-person').value = '';
+            }
+        });
+    }
+
+    const checkboxIsCommunity = document.getElementById('day-event-is-community');
+    if (checkboxIsCommunity) {
+        checkboxIsCommunity.addEventListener('change', (e) => {
+            const container = document.getElementById('day-event-community-spot-container');
+            if (e.target.checked) {
+                container.classList.remove('hidden');
+                populateCommunitySpotsSelect();
+            } else {
+                container.classList.add('hidden');
+                document.getElementById('day-event-community-spot').value = '';
             }
         });
     }
@@ -835,6 +877,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const supportPersonId = document.getElementById('day-event-support-person').value;
         const isSelfCareElement = document.getElementById('day-event-is-self-care');
         const isSelfCare = isSelfCareElement ? isSelfCareElement.checked : false;
+        const isCommunityElement = document.getElementById('day-event-is-community');
+        const isCommunity = isCommunityElement ? isCommunityElement.checked : false;
+        const communitySpotId = document.getElementById('day-event-community-spot').value;
 
         if (eventId) {
             // Edição
@@ -847,7 +892,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     time: time,
                     needsSupport: needsSupport,
                     supportPersonId: supportPersonId,
-                    isSelfCare: isSelfCare
+                    isSelfCare: isSelfCare,
+                    isCommunity: isCommunity,
+                    communitySpotId: communitySpotId
                 };
             }
         } else {
@@ -872,7 +919,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     time: time,
                     needsSupport: needsSupport,
                     supportPersonId: supportPersonId,
-                    isSelfCare: isSelfCare
+                    isSelfCare: isSelfCare,
+                    isCommunity: isCommunity,
+                    communitySpotId: communitySpotId
                 });
                 current.setDate(current.getDate() + 1);
             }
@@ -909,6 +958,45 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function renderCommunitySpotsList() {
+        const container = document.getElementById('community-spots-list');
+        if (!state.config.communitySpots || state.config.communitySpots.length === 0) {
+            container.innerHTML = `<p class="text-slate-400 text-sm font-medium text-center py-2">Nenhum local cadastrado.</p>`;
+            return;
+        }
+
+        container.innerHTML = state.config.communitySpots.map(spot => `
+            <div class="flex items-center justify-between bg-slate-50 p-3 border border-slate-100 rounded-xl shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center font-bold">
+                        <i class="ph-fill ph-balloon text-xl"></i>
+                    </div>
+                    <div>
+                        <div class="font-bold text-sm text-slate-800">${spot.name}</div>
+                        <div class="text-xs font-medium text-slate-500">${spot.type}</div>
+                    </div>
+                </div>
+                <button onclick="window.calendar.removeCommunitySpot('${spot.id}')" class="text-red-400 hover:text-white hover:bg-red-500 p-1.5 rounded-lg transition-colors">
+                    <i class="ph ph-trash text-base"></i>
+                </button>
+            </div>
+        `).join('');
+    }
+
+    function populateCommunitySpotsSelect() {
+        const select = document.getElementById('day-event-community-spot');
+        if (!select) return;
+        select.innerHTML = '<option value="">Selecione um local...</option>';
+        if (state.config.communitySpots) {
+            state.config.communitySpots.forEach(spot => {
+                const opt = document.createElement('option');
+                opt.value = spot.id;
+                opt.textContent = `${spot.name} (${spot.type})`;
+                select.appendChild(opt);
+            });
+        }
+    }
+
     function renderSupportNetworkList() {
         const container = document.getElementById('support-network-list');
         if (!state.config.supportNetwork || state.config.supportNetwork.length === 0) {
@@ -939,6 +1027,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('rule-start').value = getTodayStr();
         renderRulesList();
         renderSupportNetworkList();
+        renderCommunitySpotsList();
         settingsModal.classList.remove('hidden');
     };
 
@@ -989,7 +1078,35 @@ document.addEventListener('DOMContentLoaded', () => {
         saveStateToCloud();
     };
 
+    const btnAddCommunitySpot = document.getElementById('btn-add-community-spot');
+    if(btnAddCommunitySpot) {
+        btnAddCommunitySpot.onclick = () => {
+            const name = document.getElementById('community-spot-name').value.trim();
+            const type = document.getElementById('community-spot-type').value.trim();
+            if (!name) return alert('Nome do local é obrigatório!');
+            
+            if (!state.config.communitySpots) state.config.communitySpots = [];
+            state.config.communitySpots.push({
+                id: 'spot_' + Date.now(),
+                name: name,
+                type: type || 'Local'
+            });
+            
+            document.getElementById('community-spot-name').value = '';
+            document.getElementById('community-spot-type').value = '';
+            renderCommunitySpotsList();
+            saveStateToCloud();
+        };
+    }
+
     window.calendar = {
+        removeCommunitySpot: (id) => {
+            if (confirm("Remover este local da comunidade?")) {
+                state.config.communitySpots = state.config.communitySpots.filter(p => p.id !== id);
+                renderCommunitySpotsList();
+                saveStateToCloud();
+            }
+        },
         removeSupport: (id) => {
             if (confirm("Remover este contato da rede de apoio?")) {
                 state.config.supportNetwork = state.config.supportNetwork.filter(p => p.id !== id);
@@ -1159,6 +1276,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const chkSelfCare = document.getElementById('day-event-is-self-care');
                 if(chkSelfCare) chkSelfCare.checked = evt.isSelfCare || false;
+
+                const chkCommunity = document.getElementById('day-event-is-community');
+                if (chkCommunity) {
+                    chkCommunity.checked = evt.isCommunity || false;
+                    const cContainer = document.getElementById('day-event-community-spot-container');
+                    if (evt.isCommunity) {
+                        cContainer.classList.remove('hidden');
+                        populateCommunitySpotsSelect();
+                        document.getElementById('day-event-community-spot').value = evt.communitySpotId || '';
+                    } else {
+                        cContainer.classList.add('hidden');
+                        document.getElementById('day-event-community-spot').value = '';
+                    }
+                }
                 
                 document.getElementById('btn-save-day-event').textContent = 'Atualizar Evento';
                 document.getElementById('btn-cancel-edit-event').classList.remove('hidden');

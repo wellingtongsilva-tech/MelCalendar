@@ -212,6 +212,17 @@
                                         <span class="text-sm font-bold text-pink-800">❤️ Tempo para Mim (Autocuidado)</span>
                                     </label>
                                 </div>
+                                <div class="bg-teal-50/50 p-4 rounded-xl border border-teal-100/50">
+                                    <label class="flex items-center gap-2 cursor-pointer mb-2">
+                                        <input type="checkbox" id="day-event-is-community" class="rounded text-teal-500 focus:ring-teal-500 w-4 h-4 border-teal-200">
+                                        <span class="text-sm font-bold text-teal-800">🎈 Evento da Comunidade (Playdate/Passeio)</span>
+                                    </label>
+                                    <div id="day-event-community-spot-container" class="hidden">
+                                        <select id="day-event-community-spot" class="w-full bg-white border border-teal-200 rounded-xl py-2 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-teal-500 outline-none">
+                                            <option value="">Selecione um local...</option>
+                                        </select>
+                                    </div>
+                                </div>
                                 <div class="grid grid-cols-2 gap-3">
                                     <div>
                                         <label class="block text-xs font-bold text-slate-500 mb-2">Horário (opcional)</label>
@@ -279,6 +290,23 @@
                         </div>
                         <button type="button" id="btn-add-support" class="w-full flex justify-center py-2.5 px-4 border border-slate-200 rounded-xl shadow-sm text-sm font-bold text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 focus:outline-none transition-all active:scale-95">
                             Adicionar à Rede
+                        </button>
+                    </div>
+
+                    <!-- Community Network Config -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm mt-6">
+                        <h4 class="font-bold text-slate-800 mb-4 text-sm flex items-center gap-2">
+                            <i class="ph-fill ph-balloon text-teal-500 text-lg"></i> Locais da Comunidade
+                        </h4>
+                        <div id="community-spots-list" class="space-y-3 mb-4">
+                            <!-- Community spots populated here -->
+                        </div>
+                        <div class="grid grid-cols-2 gap-3 mb-3">
+                            <input type="text" id="community-spot-name" placeholder="Local (Ex: Pracinha)" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-teal-500 outline-none">
+                            <input type="text" id="community-spot-type" placeholder="Tipo (Ex: Parquinho)" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-teal-500 outline-none">
+                        </div>
+                        <button type="button" id="btn-add-community-spot" class="w-full flex justify-center py-2.5 px-4 border border-slate-200 rounded-xl shadow-sm text-sm font-bold text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 focus:outline-none transition-all active:scale-95">
+                            Adicionar Local
                         </button>
                     </div>
 
