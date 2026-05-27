@@ -229,6 +229,37 @@ document.addEventListener('DOMContentLoaded', () => {
         rootEl.innerHTML = '';
         if (!state.isReady) return;
 
+        const todayStr = getTodayStr();
+        const todayDateObj = new Date(todayStr + 'T00:00:00');
+        const sevenDaysAgo = new Date(todayDateObj);
+        sevenDaysAgo.setDate(todayDateObj.getDate() - 7);
+        const sevenDaysFromNow = new Date(todayDateObj);
+        sevenDaysFromNow.setDate(todayDateObj.getDate() + 7);
+
+        const selfCareEvents = state.events.filter(e => e.isSelfCare);
+        const hasRecentSelfCare = selfCareEvents.some(e => {
+            const ed = new Date(e.date + 'T00:00:00');
+            return ed >= sevenDaysAgo && ed <= sevenDaysFromNow;
+        });
+
+        if (!hasRecentSelfCare && state.events.length > 0) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'bg-gradient-to-r from-pink-50 to-rose-50 border border-pink-200/60 rounded-2xl p-4 mb-6 flex items-center sm:items-start gap-4 shadow-sm relative overflow-hidden';
+            alertDiv.innerHTML = `
+                <div class="absolute -right-4 -top-4 opacity-10 pointer-events-none">
+                    <i class="ph-fill ph-heart text-8xl text-pink-500"></i>
+                </div>
+                <div class="bg-white text-pink-500 shadow-sm border border-pink-100 p-2 sm:p-3 rounded-xl flex-shrink-0 relative z-10">
+                    <i class="ph-fill ph-heart text-xl sm:text-2xl animate-pulse"></i>
+                </div>
+                <div class="relative z-10">
+                    <h3 class="font-bold text-pink-900 text-sm sm:text-base">Alerta de Autocuidado</h3>
+                    <p class="text-pink-700/90 font-medium text-xs sm:text-sm mt-0.5">Vimos que você não agendou um "Tempo para Mim" recentemente. Que tal reservar um momento para você hoje?</p>
+                </div>
+            `;
+            rootEl.appendChild(alertDiv);
+        }
+
         const weeks = generateCalendarData();
         
         // Compute stats
@@ -519,7 +550,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 let badgeHtml = '';
                 if (filteredEvents.length > 0) {
-                    badgeHtml = `<div class="absolute bottom-2 right-2 event-badge rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-[10px] sm:text-xs font-bold">${filteredEvents.length}</div>`;
+                    const hasSelfCare = filteredEvents.some(e => e.isSelfCare);
+                    if (hasSelfCare) {
+                        badgeHtml = `<div class="absolute bottom-2 right-2 bg-pink-500 text-white shadow-sm shadow-pink-200 rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-[10px] sm:text-xs font-bold ring-2 ring-white">❤️</div>`;
+                    } else {
+                        badgeHtml = `<div class="absolute bottom-2 right-2 event-badge rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-[10px] sm:text-xs font-bold">${filteredEvents.length}</div>`;
+                    }
                 }
 
                 dayCell.innerHTML = headerHtml + badgeHtml;
@@ -659,10 +695,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         container.innerHTML = evts.map(evt => `
-            <div class="bg-white border border-slate-100 shadow-sm p-4 rounded-xl flex flex-col sm:flex-row justify-between sm:items-start gap-3 group hover:border-indigo-200 transition-colors">
+            <div class="bg-white border ${evt.isSelfCare ? 'border-pink-300 shadow-pink-100 bg-pink-50/30' : 'border-slate-100'} shadow-sm p-4 rounded-xl flex flex-col sm:flex-row justify-between sm:items-start gap-3 group hover:border-indigo-200 transition-colors">
                 <div class="flex-1">
-                    <h5 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-                        ${evt.title}
+                    <h5 class="font-bold ${evt.isSelfCare ? 'text-pink-800' : 'text-slate-800'} text-sm flex items-center gap-2">
+                        ${evt.isSelfCare ? '❤️ ' : ''}${evt.title}
                         ${evt.time ? `<span class="text-[10px] font-bold bg-indigo-50 text-indigo-500 px-1.5 py-0.5 rounded">${evt.time}</span>` : ''}
                     </h5>
                     ${evt.description ? `<p class="text-xs font-medium text-slate-500 mt-1.5 leading-relaxed">${evt.description}</p>` : ''}
@@ -714,6 +750,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('day-event-needs-support').checked = false;
         document.getElementById('day-event-support-person-container').classList.add('hidden');
         document.getElementById('day-event-support-person').value = '';
+        const chkSelfCare = document.getElementById('day-event-is-self-care');
+        if(chkSelfCare) chkSelfCare.checked = false;
     }
 
     const checkboxNeedsSupport = document.getElementById('day-event-needs-support');
@@ -795,6 +833,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const end = document.getElementById('day-event-end').value;
         const needsSupport = document.getElementById('day-event-needs-support').checked;
         const supportPersonId = document.getElementById('day-event-support-person').value;
+        const isSelfCareElement = document.getElementById('day-event-is-self-care');
+        const isSelfCare = isSelfCareElement ? isSelfCareElement.checked : false;
 
         if (eventId) {
             // Edição
@@ -806,7 +846,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     description: desc,
                     time: time,
                     needsSupport: needsSupport,
-                    supportPersonId: supportPersonId
+                    supportPersonId: supportPersonId,
+                    isSelfCare: isSelfCare
                 };
             }
         } else {
@@ -830,7 +871,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     description: desc,
                     time: time,
                     needsSupport: needsSupport,
-                    supportPersonId: supportPersonId
+                    supportPersonId: supportPersonId,
+                    isSelfCare: isSelfCare
                 });
                 current.setDate(current.getDate() + 1);
             }
@@ -1114,6 +1156,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         document.getElementById('day-event-support-person').value = '';
                     }
                 }
+                
+                const chkSelfCare = document.getElementById('day-event-is-self-care');
+                if(chkSelfCare) chkSelfCare.checked = evt.isSelfCare || false;
                 
                 document.getElementById('btn-save-day-event').textContent = 'Atualizar Evento';
                 document.getElementById('btn-cancel-edit-event').classList.remove('hidden');
