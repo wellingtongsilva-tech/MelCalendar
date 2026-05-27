@@ -726,6 +726,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     titleColor = 'text-rose-800';
                 }
                 iconStr = '💰 ';
+            } else if (evt.isMilestone) {
+                bgColor = 'bg-amber-50/30';
+                borderColor = 'border-amber-300 shadow-amber-100';
+                titleColor = 'text-amber-800';
+                iconStr = '📝 ';
             }
 
             const communitySpot = evt.communitySpotId && state.config.communitySpots ? state.config.communitySpots.find(s => s.id === evt.communitySpotId) : null;
@@ -807,6 +812,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if(financeContainer) financeContainer.classList.add('hidden');
         const financeValue = document.getElementById('day-event-finance-value');
         if(financeValue) financeValue.value = '';
+        
+        const chkMilestone = document.getElementById('day-event-is-milestone');
+        if(chkMilestone) chkMilestone.checked = false;
     }
 
     const checkboxNeedsSupport = document.getElementById('day-event-needs-support');
@@ -926,6 +934,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const isFinance = isFinanceElement ? isFinanceElement.checked : false;
         const financeType = document.getElementById('day-event-finance-type').value;
         const financeValue = parseFloat(document.getElementById('day-event-finance-value').value) || 0;
+        const isMilestoneElement = document.getElementById('day-event-is-milestone');
+        const isMilestone = isMilestoneElement ? isMilestoneElement.checked : false;
 
         if (eventId) {
             // Edição
@@ -944,7 +954,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     isHealth: isHealth,
                     isFinance: isFinance,
                     financeType: financeType,
-                    financeValue: financeValue
+                    financeValue: financeValue,
+                    isMilestone: isMilestone
                 };
             }
         } else {
@@ -975,7 +986,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     isHealth: isHealth,
                     isFinance: isFinance,
                     financeType: financeType,
-                    financeValue: financeValue
+                    financeValue: financeValue,
+                    isMilestone: isMilestone
                 });
                 current.setDate(current.getDate() + 1);
             }
@@ -1051,6 +1063,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function renderDiaryNotesList() {
+        const container = document.getElementById('diary-notes-list');
+        if (!state.config.diaryNotes || state.config.diaryNotes.length === 0) {
+            container.innerHTML = `<p class="text-slate-400 text-sm font-medium text-center py-2">Nenhuma anotação registrada.</p>`;
+            return;
+        }
+
+        container.innerHTML = state.config.diaryNotes.map(note => `
+            <div class="flex items-center justify-between bg-slate-50 p-3 border border-slate-100 rounded-xl shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center font-bold">
+                        <i class="ph-fill ph-notebook text-xl"></i>
+                    </div>
+                    <div>
+                        <div class="font-bold text-sm text-slate-800">${note.title}</div>
+                        <div class="text-xs font-medium text-slate-500">${note.desc}</div>
+                    </div>
+                </div>
+                <button onclick="window.calendar.removeDiaryNote('${note.id}')" class="text-red-400 hover:text-white hover:bg-red-500 p-1.5 rounded-lg transition-colors">
+                    <i class="ph ph-trash text-base"></i>
+                </button>
+            </div>
+        `).join('');
+    }
+
     function renderHealthRecordsList() {
         const container = document.getElementById('health-records-list');
         if (!state.config.healthRecords || state.config.healthRecords.length === 0) {
@@ -1108,6 +1145,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderSupportNetworkList();
         renderCommunitySpotsList();
         renderHealthRecordsList();
+        renderDiaryNotesList();
         settingsModal.classList.remove('hidden');
     };
 
@@ -1200,7 +1238,35 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+    const btnAddDiaryNote = document.getElementById('btn-add-diary-note');
+    if(btnAddDiaryNote) {
+        btnAddDiaryNote.onclick = () => {
+            const title = document.getElementById('diary-note-title').value.trim();
+            const desc = document.getElementById('diary-note-desc').value.trim();
+            if (!title) return alert('O título da anotação é obrigatório!');
+            
+            if (!state.config.diaryNotes) state.config.diaryNotes = [];
+            state.config.diaryNotes.push({
+                id: 'note_' + Date.now(),
+                title: title,
+                desc: desc || ''
+            });
+            
+            document.getElementById('diary-note-title').value = '';
+            document.getElementById('diary-note-desc').value = '';
+            renderDiaryNotesList();
+            saveStateToCloud();
+        };
+    }
+
     window.calendar = {
+        removeDiaryNote: (id) => {
+            if (confirm("Remover esta anotação?")) {
+                state.config.diaryNotes = state.config.diaryNotes.filter(p => p.id !== id);
+                renderDiaryNotesList();
+                saveStateToCloud();
+            }
+        },
         removeHealthRecord: (id) => {
             if (confirm("Remover este registro de saúde?")) {
                 state.config.healthRecords = state.config.healthRecords.filter(p => p.id !== id);
@@ -1415,6 +1481,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         document.getElementById('day-event-finance-value').value = '';
                     }
                 }
+                
+                const chkMilestone = document.getElementById('day-event-is-milestone');
+                if(chkMilestone) chkMilestone.checked = evt.isMilestone || false;
                 
                 document.getElementById('btn-save-day-event').textContent = 'Atualizar Evento';
                 document.getElementById('btn-cancel-edit-event').classList.remove('hidden');
