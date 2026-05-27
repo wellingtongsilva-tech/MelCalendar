@@ -60,7 +60,7 @@
                     </button>
                     
                     <!-- Search Filters Dropdown -->
-                    <div id="search-filters-panel" class="hidden absolute top-14 right-0 w-80 bg-white border border-slate-100 rounded-2xl shadow-2xl p-5 z-50 transition-all">
+                    <div id="search-filters-panel" class="hidden absolute top-14 right-0 w-[90vw] sm:w-80 max-w-sm bg-white border border-slate-100 rounded-2xl shadow-2xl p-5 z-50 transition-all">
                         <h4 class="font-bold text-sm mb-4 text-slate-800">Busca e Filtros</h4>
                         <div class="space-y-4">
                             <div>
@@ -290,144 +290,168 @@
                     </button>
                 </div>
                 
-                <div class="p-6 overflow-y-auto flex-1 space-y-6">
-                    <p class="text-sm text-slate-500 font-medium leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">
-                        Defina as regras da sua escala e gerencie sua rede de apoio abaixo.
-                    </p>
+                <!-- Tabs Header -->
+                <div class="flex overflow-x-auto border-b border-slate-100 custom-scrollbar hide-scrollbar" style="scrollbar-width: none;">
+                    <button id="tab-btn-perfil" class="settings-tab-btn flex-1 px-3 py-3 text-xs sm:text-sm font-bold text-indigo-600 border-b-2 border-indigo-600 whitespace-nowrap transition-colors">👦 Escala</button>
+                    <button id="tab-btn-apoio" class="settings-tab-btn flex-1 px-3 py-3 text-xs sm:text-sm font-bold text-slate-400 border-b-2 border-transparent hover:text-slate-600 whitespace-nowrap transition-colors">🤝 Apoio</button>
+                    <button id="tab-btn-saude" class="settings-tab-btn flex-1 px-3 py-3 text-xs sm:text-sm font-bold text-slate-400 border-b-2 border-transparent hover:text-slate-600 whitespace-nowrap transition-colors">🩺 Diário</button>
+                    <button id="tab-btn-sistema" class="settings-tab-btn flex-1 px-3 py-3 text-xs sm:text-sm font-bold text-slate-400 border-b-2 border-transparent hover:text-slate-600 whitespace-nowrap transition-colors">⚙️ Sistema</button>
+                </div>
 
-                    <!-- Opções Gerais -->
-                    <div class="grid grid-cols-2 gap-3 mt-6">
-                        <button id="btn-theme-toggle" class="flex flex-col items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 py-3 rounded-2xl border border-slate-200 transition-colors">
-                            <i id="theme-icon" class="ph ph-moon text-2xl text-indigo-500"></i>
-                            <span class="text-xs font-bold">Tema Escuro</span>
-                        </button>
-                        <button id="btn-export-all" class="flex flex-col items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 py-3 rounded-2xl border border-slate-200 transition-colors">
-                            <i class="ph ph-download-simple text-2xl text-emerald-500"></i>
-                            <span class="text-xs font-bold">Exportar .ics</span>
-                        </button>
-                    </div>
-
-                    <!-- Support Network Config -->
-                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm mt-6">
-                        <h4 class="font-bold text-slate-800 mb-4 text-sm flex items-center gap-2">
-                            <i class="ph-fill ph-users text-orange-500 text-lg"></i> Rede de Apoio
-                        </h4>
-                        <div id="support-network-list" class="space-y-3 mb-4">
-                            <!-- Support network populated here -->
-                        </div>
-                        <div class="grid grid-cols-2 gap-3 mb-3">
-                            <input type="text" id="support-name" placeholder="Nome (Ex: Vó Maria)" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
-                            <input type="text" id="support-relation" placeholder="Relação (Ex: Avó)" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
-                        </div>
-                        <button type="button" id="btn-add-support" class="w-full flex justify-center py-2.5 px-4 border border-slate-200 rounded-xl shadow-sm text-sm font-bold text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 focus:outline-none transition-all active:scale-95">
-                            Adicionar à Rede
-                        </button>
-                    </div>
-
-                    <!-- Community Network Config -->
-                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm mt-6">
-                        <h4 class="font-bold text-slate-800 mb-4 text-sm flex items-center gap-2">
-                            <i class="ph-fill ph-balloon text-teal-500 text-lg"></i> Locais da Comunidade
-                        </h4>
-                        <div id="community-spots-list" class="space-y-3 mb-4">
-                            <!-- Community spots populated here -->
-                        </div>
-                        <div class="grid grid-cols-2 gap-3 mb-3">
-                            <input type="text" id="community-spot-name" placeholder="Local (Ex: Pracinha)" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-teal-500 outline-none">
-                            <input type="text" id="community-spot-type" placeholder="Tipo (Ex: Parquinho)" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-teal-500 outline-none">
-                        </div>
-                        <button type="button" id="btn-add-community-spot" class="w-full flex justify-center py-2.5 px-4 border border-slate-200 rounded-xl shadow-sm text-sm font-bold text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 focus:outline-none transition-all active:scale-95">
-                            Adicionar Local
-                        </button>
-                    </div>
-
-                    <!-- Health Records Config -->
-                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm mt-6">
-                        <h4 class="font-bold text-slate-800 mb-4 text-sm flex items-center gap-2">
-                            <i class="ph-fill ph-stethoscope text-sky-500 text-lg"></i> Prontuário Rápido (Saúde)
-                        </h4>
-                        <div id="health-records-list" class="space-y-3 mb-4">
-                            <!-- Health records populated here -->
-                        </div>
-                        <div class="grid grid-cols-2 gap-3 mb-3">
-                            <input type="text" id="health-record-name" placeholder="Item (Ex: Vacina Gripe)" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-sky-500 outline-none">
-                            <input type="text" id="health-record-date" placeholder="Data/Nota (Ex: Maio 2026)" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-sky-500 outline-none">
-                        </div>
-                        <button type="button" id="btn-add-health-record" class="w-full flex justify-center py-2.5 px-4 border border-slate-200 rounded-xl shadow-sm text-sm font-bold text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 focus:outline-none transition-all active:scale-95">
-                            Adicionar Registro
-                        </button>
-                    </div>
-
-                    <!-- Diary Notes Config -->
-                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm mt-6">
-                        <h4 class="font-bold text-slate-800 mb-4 text-sm flex items-center gap-2">
-                            <i class="ph-fill ph-notebook text-amber-500 text-lg"></i> Anotações e Marcos (Diário)
-                        </h4>
-                        <div id="diary-notes-list" class="space-y-3 mb-4">
-                            <!-- Diary notes populated here -->
-                        </div>
-                        <div class="space-y-3 mb-3">
-                            <input type="text" id="diary-note-title" placeholder="Título (Ex: Primeiro dentinho)" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-amber-500 outline-none">
-                            <textarea id="diary-note-desc" placeholder="Descreva essa memória ou anotação..." rows="2" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-amber-500 outline-none resize-none"></textarea>
-                        </div>
-                        <button type="button" id="btn-add-diary-note" class="w-full flex justify-center py-2.5 px-4 border border-slate-200 rounded-xl shadow-sm text-sm font-bold text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 focus:outline-none transition-all active:scale-95">
-                            Salvar Anotação
-                        </button>
-                    </div>
-
-                    <hr class="border-slate-100 my-6">
-                    <h4 class="font-bold text-slate-800 mb-4 text-sm flex items-center gap-2">
-                        <i class="ph-fill ph-calendar text-indigo-500 text-lg"></i> Regras de Escala
-                    </h4>
+                <div class="p-4 sm:p-6 overflow-y-auto flex-1 bg-slate-50 relative custom-scrollbar">
                     
-                    <div id="rules-list" class="space-y-3">
-                        <!-- Rules populated here -->
+                    <!-- TAB 1: Perfil & Escala -->
+                    <div id="tab-content-perfil" class="settings-tab-content space-y-6">
+                        <p class="text-sm text-slate-500 font-medium leading-relaxed bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                            Defina as regras e repetições da sua escala.
+                        </p>
+
+                        <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                            <i class="ph-fill ph-calendar text-indigo-500 text-lg"></i> Regras de Escala Atuais
+                        </h4>
+                        <div id="rules-list" class="space-y-3">
+                            <!-- Rules populated here -->
+                        </div>
+
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm mt-6">
+                            <h4 class="font-bold text-slate-800 mb-4 text-sm flex items-center gap-2">
+                                <i class="ph-fill ph-calendar-plus text-indigo-500 text-lg"></i> Nova Regra de Escala
+                            </h4>
+                            <div class="grid grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 mb-1.5">Dia da Semana</label>
+                                    <select id="rule-day" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                                        <option value="0">Domingo</option>
+                                        <option value="1">Segunda-feira</option>
+                                        <option value="2">Terça-feira</option>
+                                        <option value="3">Quarta-feira</option>
+                                        <option value="4">Quinta-feira</option>
+                                        <option value="5">Sexta-feira</option>
+                                        <option value="6">Sábado</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 mb-1.5">Status</label>
+                                    <select id="rule-type" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                                        <option value="Com Filhos">Com Filhos</option>
+                                        <option value="Sem Filhos">Sem Filhos</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 mb-1.5">Repetição</label>
+                                    <select id="rule-frequency" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                                        <option value="semanal">Toda Semana</option>
+                                        <option value="quinzenal">A cada 15 dias</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 mb-1.5">Data de Início</label>
+                                    <input type="date" id="rule-start" required class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                                </div>
+                            </div>
+                            <input type="text" id="rule-desc" placeholder="Descrição (Ex: À noite)" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm mb-4 font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                            
+                            <button type="button" id="btn-add-rule" class="w-full flex justify-center py-3 px-4 border border-slate-200 rounded-xl shadow-sm text-sm font-bold text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 focus:outline-none transition-all active:scale-95">
+                                Adicionar Regra
+                            </button>
+                        </div>
                     </div>
 
-                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm mt-6">
-                        <h4 class="font-bold text-slate-800 mb-4 text-sm flex items-center gap-2">
-                            <i class="ph-fill ph-calendar-plus text-indigo-500 text-lg"></i> Nova Regra de Escala
-                        </h4>
-                        <div class="grid grid-cols-2 gap-4 mb-4">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 mb-1.5">Dia da Semana</label>
-                                <select id="rule-day" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
-                                    <option value="0">Domingo</option>
-                                    <option value="1">Segunda-feira</option>
-                                    <option value="2">Terça-feira</option>
-                                    <option value="3">Quarta-feira</option>
-                                    <option value="4">Quinta-feira</option>
-                                    <option value="5">Sexta-feira</option>
-                                    <option value="6">Sábado</option>
-                                </select>
+                    <!-- TAB 2: Apoio & Locais -->
+                    <div id="tab-content-apoio" class="settings-tab-content space-y-6 hidden">
+                        <!-- Support Network Config -->
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                            <h4 class="font-bold text-slate-800 mb-4 text-sm flex items-center gap-2">
+                                <i class="ph-fill ph-users text-orange-500 text-lg"></i> Rede de Apoio
+                            </h4>
+                            <div id="support-network-list" class="space-y-3 mb-4">
+                                <!-- Support network populated here -->
                             </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 mb-1.5">Status</label>
-                                <select id="rule-type" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
-                                    <option value="Com Filhos">Com Filhos</option>
-                                    <option value="Sem Filhos">Sem Filhos</option>
-                                </select>
+                            <div class="grid grid-cols-2 gap-3 mb-3">
+                                <input type="text" id="support-name" placeholder="Nome (Ex: Vó Maria)" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <input type="text" id="support-relation" placeholder="Relação (Ex: Avó)" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
                             </div>
+                            <button type="button" id="btn-add-support" class="w-full flex justify-center py-2.5 px-4 border border-slate-200 rounded-xl shadow-sm text-sm font-bold text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 focus:outline-none transition-all active:scale-95">
+                                Adicionar à Rede
+                            </button>
                         </div>
-                        <div class="grid grid-cols-2 gap-4 mb-4">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 mb-1.5">Repetição</label>
-                                <select id="rule-frequency" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
-                                    <option value="semanal">Toda Semana</option>
-                                    <option value="quinzenal">A cada 15 dias</option>
-                                </select>
+
+                        <!-- Community Network Config -->
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                            <h4 class="font-bold text-slate-800 mb-4 text-sm flex items-center gap-2">
+                                <i class="ph-fill ph-balloon text-teal-500 text-lg"></i> Locais da Comunidade
+                            </h4>
+                            <div id="community-spots-list" class="space-y-3 mb-4">
+                                <!-- Community spots populated here -->
                             </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 mb-1.5">Data de Início</label>
-                                <input type="date" id="rule-start" required class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <div class="grid grid-cols-2 gap-3 mb-3">
+                                <input type="text" id="community-spot-name" placeholder="Local (Ex: Pracinha)" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-teal-500 outline-none">
+                                <input type="text" id="community-spot-type" placeholder="Tipo (Ex: Parquinho)" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-teal-500 outline-none">
                             </div>
+                            <button type="button" id="btn-add-community-spot" class="w-full flex justify-center py-2.5 px-4 border border-slate-200 rounded-xl shadow-sm text-sm font-bold text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 focus:outline-none transition-all active:scale-95">
+                                Adicionar Local
+                            </button>
                         </div>
-                        <input type="text" id="rule-desc" placeholder="Descrição (Ex: À noite)" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm mb-4 font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
-                        
-                        <button type="button" id="btn-add-rule" class="w-full flex justify-center py-3 px-4 border border-slate-200 rounded-xl shadow-sm text-sm font-bold text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 focus:outline-none transition-all active:scale-95">
-                            Adicionar Regra
-                        </button>
                     </div>
+
+                    <!-- TAB 3: Saúde & Diário -->
+                    <div id="tab-content-saude" class="settings-tab-content space-y-6 hidden">
+                        <!-- Diary Notes Config -->
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                            <h4 class="font-bold text-slate-800 mb-4 text-sm flex items-center gap-2">
+                                <i class="ph-fill ph-notebook text-amber-500 text-lg"></i> Anotações e Marcos (Diário)
+                            </h4>
+                            <div id="diary-notes-list" class="space-y-3 mb-4">
+                                <!-- Diary notes populated here -->
+                            </div>
+                            <div class="space-y-3 mb-3">
+                                <input type="text" id="diary-note-title" placeholder="Título (Ex: Primeiro dentinho)" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-amber-500 outline-none">
+                                <textarea id="diary-note-desc" placeholder="Descreva essa memória ou anotação..." rows="2" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-amber-500 outline-none resize-none"></textarea>
+                            </div>
+                            <button type="button" id="btn-add-diary-note" class="w-full flex justify-center py-2.5 px-4 border border-slate-200 rounded-xl shadow-sm text-sm font-bold text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 focus:outline-none transition-all active:scale-95">
+                                Salvar Anotação
+                            </button>
+                        </div>
+
+                        <!-- Health Records Config -->
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                            <h4 class="font-bold text-slate-800 mb-4 text-sm flex items-center gap-2">
+                                <i class="ph-fill ph-stethoscope text-sky-500 text-lg"></i> Prontuário Rápido (Saúde)
+                            </h4>
+                            <div id="health-records-list" class="space-y-3 mb-4">
+                                <!-- Health records populated here -->
+                            </div>
+                            <div class="grid grid-cols-2 gap-3 mb-3">
+                                <input type="text" id="health-record-name" placeholder="Item (Ex: Vacina Gripe)" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-sky-500 outline-none">
+                                <input type="text" id="health-record-date" placeholder="Data/Nota (Ex: Maio 2026)" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-sky-500 outline-none">
+                            </div>
+                            <button type="button" id="btn-add-health-record" class="w-full flex justify-center py-2.5 px-4 border border-slate-200 rounded-xl shadow-sm text-sm font-bold text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 focus:outline-none transition-all active:scale-95">
+                                Adicionar Registro
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- TAB 4: Sistema -->
+                    <div id="tab-content-sistema" class="settings-tab-content space-y-6 hidden">
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                            <h4 class="font-bold text-slate-800 mb-4 text-sm flex items-center gap-2">
+                                <i class="ph-fill ph-gear text-slate-500 text-lg"></i> Opções Gerais
+                            </h4>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button id="btn-theme-toggle" class="flex flex-col items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 py-3 rounded-2xl border border-slate-200 transition-colors">
+                                    <i id="theme-icon" class="ph ph-moon text-2xl text-indigo-500"></i>
+                                    <span class="text-xs font-bold">Tema Escuro</span>
+                                </button>
+                                <button id="btn-export-all" class="flex flex-col items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 py-3 rounded-2xl border border-slate-200 transition-colors">
+                                    <i class="ph ph-download-simple text-2xl text-emerald-500"></i>
+                                    <span class="text-xs font-bold">Exportar .ics</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>

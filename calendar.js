@@ -1152,6 +1152,35 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-close-settings').onclick = () => settingsModal.classList.add('hidden');
     document.getElementById('settings-modal-overlay').onclick = () => settingsModal.classList.add('hidden');
 
+    // --- Tabs Logic for Settings Modal ---
+    const tabBtns = ['perfil', 'apoio', 'saude', 'sistema'];
+    tabBtns.forEach(tab => {
+        const btn = document.getElementById(`tab-btn-${tab}`);
+        if (btn) {
+            btn.addEventListener('click', () => {
+                tabBtns.forEach(t => {
+                    const b = document.getElementById(`tab-btn-${t}`);
+                    const c = document.getElementById(`tab-content-${t}`);
+                    if(b) {
+                        b.classList.remove('text-indigo-600', 'border-indigo-600');
+                        b.classList.add('text-slate-400', 'border-transparent');
+                    }
+                    if(c) {
+                        c.classList.add('hidden');
+                    }
+                });
+                
+                btn.classList.remove('text-slate-400', 'border-transparent');
+                btn.classList.add('text-indigo-600', 'border-indigo-600');
+                
+                const content = document.getElementById(`tab-content-${tab}`);
+                if (content) {
+                    content.classList.remove('hidden');
+                }
+            });
+        }
+    });
+
     document.getElementById('btn-add-rule').onclick = () => {
         const day = parseInt(document.getElementById('rule-day').value);
         const type = document.getElementById('rule-type').value;
@@ -1605,7 +1634,10 @@ document.addEventListener('DOMContentLoaded', () => {
         btnMobileToday.addEventListener('click', () => btnToday.click());
     }
     if (btnMobileFilters) {
-        btnMobileFilters.addEventListener('click', () => btnToggleFilters.click());
+        btnMobileFilters.addEventListener('click', (e) => {
+            e.stopPropagation();
+            btnToggleFilters.click();
+        });
     }
     if (btnMobileConfig) {
         btnMobileConfig.addEventListener('click', () => btnConfig.click());
