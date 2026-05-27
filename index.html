@@ -229,6 +229,25 @@
                                         <span class="text-sm font-bold text-sky-800">🩺 Evento de Saúde (Consulta/Vacina)</span>
                                     </label>
                                 </div>
+                                <div class="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100/50">
+                                    <label class="flex items-center gap-2 cursor-pointer mb-2">
+                                        <input type="checkbox" id="day-event-is-finance" class="rounded text-emerald-500 focus:ring-emerald-500 w-4 h-4 border-emerald-200">
+                                        <span class="text-sm font-bold text-emerald-800">💰 Evento Financeiro (Pensão/Gasto)</span>
+                                    </label>
+                                    <div id="day-event-finance-container" class="hidden grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-1">Tipo</label>
+                                            <select id="day-event-finance-type" class="w-full bg-white border border-emerald-200 rounded-xl py-2 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+                                                <option value="in">Entrada (+)</option>
+                                                <option value="out">Saída (-)</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-1">Valor (R$)</label>
+                                            <input type="number" step="0.01" id="day-event-finance-value" placeholder="0.00" class="w-full bg-white border border-emerald-200 rounded-xl py-2 px-3 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="grid grid-cols-2 gap-3">
                                     <div>
                                         <label class="block text-xs font-bold text-slate-500 mb-2">Horário (opcional)</label>

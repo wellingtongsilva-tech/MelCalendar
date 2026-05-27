@@ -715,6 +715,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 borderColor = 'border-sky-300 shadow-sky-100';
                 titleColor = 'text-sky-800';
                 iconStr = '🩺 ';
+            } else if (evt.isFinance) {
+                if (evt.financeType === 'in') {
+                    bgColor = 'bg-emerald-50/30';
+                    borderColor = 'border-emerald-300 shadow-emerald-100';
+                    titleColor = 'text-emerald-800';
+                } else {
+                    bgColor = 'bg-rose-50/30';
+                    borderColor = 'border-rose-300 shadow-rose-100';
+                    titleColor = 'text-rose-800';
+                }
+                iconStr = '💰 ';
             }
 
             const communitySpot = evt.communitySpotId && state.config.communitySpots ? state.config.communitySpots.find(s => s.id === evt.communitySpotId) : null;
@@ -727,6 +738,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${evt.time ? `<span class="text-[10px] font-bold bg-indigo-50 text-indigo-500 px-1.5 py-0.5 rounded">${evt.time}</span>` : ''}
                     </h5>
                     ${evt.description ? `<p class="text-xs font-medium text-slate-500 mt-1.5 leading-relaxed">${evt.description}</p>` : ''}
+                    ${evt.isFinance ? `<p class="text-sm font-bold ${evt.financeType === 'in' ? 'text-emerald-600' : 'text-rose-600'} mt-1 flex items-center gap-1">${evt.financeType === 'in' ? '+' : '-'} R$ ${parseFloat(evt.financeValue).toFixed(2)}</p>` : ''}
                     ${communitySpot ? `<p class="text-xs font-bold text-teal-600 mt-1 flex items-center gap-1"><i class="ph-fill ph-map-pin"></i> ${communitySpot.name} (${communitySpot.type})</p>` : ''}
                     ${evt.needsSupport ? `
                     <div class="mt-2 bg-orange-50 border border-orange-100 p-2 rounded-lg flex items-center justify-between">
@@ -788,6 +800,13 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const chkHealth = document.getElementById('day-event-is-health');
         if(chkHealth) chkHealth.checked = false;
+        
+        const chkFinance = document.getElementById('day-event-is-finance');
+        if(chkFinance) chkFinance.checked = false;
+        const financeContainer = document.getElementById('day-event-finance-container');
+        if(financeContainer) financeContainer.classList.add('hidden');
+        const financeValue = document.getElementById('day-event-finance-value');
+        if(financeValue) financeValue.value = '';
     }
 
     const checkboxNeedsSupport = document.getElementById('day-event-needs-support');
@@ -814,6 +833,19 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 container.classList.add('hidden');
                 document.getElementById('day-event-community-spot').value = '';
+            }
+        });
+    }
+
+    const checkboxIsFinance = document.getElementById('day-event-is-finance');
+    if (checkboxIsFinance) {
+        checkboxIsFinance.addEventListener('change', (e) => {
+            const container = document.getElementById('day-event-finance-container');
+            if (e.target.checked) {
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+                document.getElementById('day-event-finance-value').value = '';
             }
         });
     }
@@ -890,6 +922,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const communitySpotId = document.getElementById('day-event-community-spot').value;
         const isHealthElement = document.getElementById('day-event-is-health');
         const isHealth = isHealthElement ? isHealthElement.checked : false;
+        const isFinanceElement = document.getElementById('day-event-is-finance');
+        const isFinance = isFinanceElement ? isFinanceElement.checked : false;
+        const financeType = document.getElementById('day-event-finance-type').value;
+        const financeValue = parseFloat(document.getElementById('day-event-finance-value').value) || 0;
 
         if (eventId) {
             // Edição
@@ -905,7 +941,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     isSelfCare: isSelfCare,
                     isCommunity: isCommunity,
                     communitySpotId: communitySpotId,
-                    isHealth: isHealth
+                    isHealth: isHealth,
+                    isFinance: isFinance,
+                    financeType: financeType,
+                    financeValue: financeValue
                 };
             }
         } else {
@@ -933,7 +972,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     isSelfCare: isSelfCare,
                     isCommunity: isCommunity,
                     communitySpotId: communitySpotId,
-                    isHealth: isHealth
+                    isHealth: isHealth,
+                    isFinance: isFinance,
+                    financeType: financeType,
+                    financeValue: financeValue
                 });
                 current.setDate(current.getDate() + 1);
             }
@@ -1359,6 +1401,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const chkHealth = document.getElementById('day-event-is-health');
                 if(chkHealth) chkHealth.checked = evt.isHealth || false;
+                
+                const chkFinance = document.getElementById('day-event-is-finance');
+                if(chkFinance) {
+                    chkFinance.checked = evt.isFinance || false;
+                    const fContainer = document.getElementById('day-event-finance-container');
+                    if(evt.isFinance) {
+                        fContainer.classList.remove('hidden');
+                        document.getElementById('day-event-finance-type').value = evt.financeType || 'out';
+                        document.getElementById('day-event-finance-value').value = evt.financeValue || '';
+                    } else {
+                        fContainer.classList.add('hidden');
+                        document.getElementById('day-event-finance-value').value = '';
+                    }
+                }
                 
                 document.getElementById('btn-save-day-event').textContent = 'Atualizar Evento';
                 document.getElementById('btn-cancel-edit-event').classList.remove('hidden');
