@@ -1226,6 +1226,28 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- Mobile Bottom Navigation ---
+    const btnMobileHome = document.getElementById('btn-mobile-home');
+    const btnMobileToday = document.getElementById('btn-mobile-today');
+    const btnMobileFilters = document.getElementById('btn-mobile-filters');
+    const btnMobileConfig = document.getElementById('btn-mobile-config');
+
+    if (btnMobileHome) {
+        btnMobileHome.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            filtersPanel.classList.add('hidden');
+        });
+    }
+    if (btnMobileToday) {
+        btnMobileToday.addEventListener('click', () => btnToday.click());
+    }
+    if (btnMobileFilters) {
+        btnMobileFilters.addEventListener('click', () => btnToggleFilters.click());
+    }
+    if (btnMobileConfig) {
+        btnMobileConfig.addEventListener('click', () => btnConfig.click());
+    }
+
     // --- Init ---
     btnToday.addEventListener('click', () => {
         const todayStr = getTodayStr();

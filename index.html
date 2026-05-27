@@ -50,12 +50,12 @@
                         <span id="credits-display">10</span>
                     </div>
 
-                    <button id="btn-today" class="inline-flex items-center justify-center px-3 sm:px-5 py-2 rounded-full shadow-sm text-indigo-700 bg-indigo-50 hover:bg-indigo-100 font-bold text-sm transition-all border border-indigo-100 gap-1.5" title="Ir para Hoje">
+                    <button id="btn-today" class="hidden sm:inline-flex items-center justify-center px-3 sm:px-5 py-2 rounded-full shadow-sm text-indigo-700 bg-indigo-50 hover:bg-indigo-100 font-bold text-sm transition-all border border-indigo-100 gap-1.5" title="Ir para Hoje">
                         <i class="ph ph-calendar-star sm:hidden text-lg"></i>
                         <span class="hidden sm:inline">Hoje</span>
                     </button>
                     
-                    <button id="btn-toggle-filters" class="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors border border-slate-200 shrink-0" title="Buscar / Filtros">
+                    <button id="btn-toggle-filters" class="hidden sm:flex w-10 h-10 items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors border border-slate-200 shrink-0" title="Buscar / Filtros">
                         <i class="ph ph-faders text-lg"></i>
                     </button>
                     
@@ -103,15 +103,7 @@
                         </div>
                     </div>
 
-                    <button id="btn-theme-toggle" class="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors border border-slate-200 shrink-0" title="Alternar Tema Escuro">
-                        <i id="theme-icon" class="ph ph-moon text-lg"></i>
-                    </button>
-
-                    <button id="btn-export-all" class="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors border border-slate-200 shrink-0" title="Exportar toda a Agenda (.ics)">
-                        <i class="ph ph-download-simple text-lg"></i>
-                    </button>
-
-                    <button id="btn-config" class="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors border border-slate-200 shrink-0" title="Configurações">
+                    <button id="btn-config" class="hidden sm:flex w-10 h-10 items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors border border-slate-200 shrink-0" title="Configurações">
                         <i class="ph ph-sliders-horizontal text-lg"></i>
                     </button>
                     
@@ -144,7 +136,7 @@
         </div>
     </header>
 
-    <main class="flex-1 mt-[136px] sm:mt-40 max-w-7xl mx-auto w-full px-2 sm:px-6 lg:px-8 pb-12">
+    <main class="flex-1 mt-[136px] sm:mt-40 max-w-7xl mx-auto w-full px-2 sm:px-6 lg:px-8 pb-28 sm:pb-12">
         <div id="calendar-root" class="calendar-container flex flex-col p-2 sm:p-4 gap-4 mt-4">
             <!-- Weeks -->
         <div class="mt-8 border-t border-slate-100 pt-8 pb-4">
@@ -255,6 +247,18 @@
                         Defina as regras da sua escala e gerencie sua rede de apoio abaixo.
                     </p>
 
+                    <!-- Opções Gerais -->
+                    <div class="grid grid-cols-2 gap-3 mt-6">
+                        <button id="btn-theme-toggle" class="flex flex-col items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 py-3 rounded-2xl border border-slate-200 transition-colors">
+                            <i id="theme-icon" class="ph ph-moon text-2xl text-indigo-500"></i>
+                            <span class="text-xs font-bold">Tema Escuro</span>
+                        </button>
+                        <button id="btn-export-all" class="flex flex-col items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 py-3 rounded-2xl border border-slate-200 transition-colors">
+                            <i class="ph ph-download-simple text-2xl text-emerald-500"></i>
+                            <span class="text-xs font-bold">Exportar .ics</span>
+                        </button>
+                    </div>
+
                     <!-- Support Network Config -->
                     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm mt-6">
                         <h4 class="font-bold text-slate-800 mb-4 text-sm flex items-center gap-2">
@@ -329,6 +333,28 @@
             </div>
         </div>
     </div>
+
+    <!-- Bottom Navigation Bar (Mobile Only) -->
+    <nav class="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 pb-safe z-50 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.1)]">
+        <div class="flex justify-around items-center h-16 px-2">
+            <button id="btn-mobile-home" class="flex flex-col items-center justify-center w-16 gap-1 text-slate-400 hover:text-indigo-600 transition-colors">
+                <i class="ph ph-house text-2xl"></i>
+                <span class="text-[10px] font-bold">Início</span>
+            </button>
+            <button id="btn-mobile-today" class="flex flex-col items-center justify-center w-16 gap-1 text-slate-400 hover:text-indigo-600 transition-colors">
+                <i class="ph ph-calendar-star text-2xl"></i>
+                <span class="text-[10px] font-bold">Hoje</span>
+            </button>
+            <button id="btn-mobile-filters" class="flex flex-col items-center justify-center w-16 gap-1 text-slate-400 hover:text-indigo-600 transition-colors relative">
+                <i class="ph ph-faders text-2xl"></i>
+                <span class="text-[10px] font-bold">Buscar</span>
+            </button>
+            <button id="btn-mobile-config" class="flex flex-col items-center justify-center w-16 gap-1 text-slate-400 hover:text-indigo-600 transition-colors">
+                <i class="ph ph-sliders-horizontal text-2xl"></i>
+                <span class="text-[10px] font-bold">Ajustes</span>
+            </button>
+        </div>
+    </nav>
 
     <script src="api.js?v=1.1"></script>
     <script src="calendar.js?v=1.1"></script>
