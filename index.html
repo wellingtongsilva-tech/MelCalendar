@@ -137,7 +137,25 @@
     </header>
 
     <main class="flex-1 mt-[136px] sm:mt-40 max-w-7xl mx-auto w-full px-2 sm:px-6 lg:px-8 pb-28 sm:pb-12">
-        <div id="calendar-root" class="calendar-container flex flex-col p-2 sm:p-4 gap-4 mt-4">
+        
+        <!-- View Controls -->
+        <div class="flex flex-col sm:flex-row items-center justify-between bg-white border border-slate-100 rounded-2xl shadow-sm p-3 mt-4 gap-3 sm:gap-0">
+            <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start" id="month-nav-container">
+                <button id="btn-prev-month" class="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors">
+                    <i class="ph ph-caret-left font-bold text-lg sm:text-base"></i>
+                </button>
+                <div id="current-month-display" class="text-base sm:text-sm font-bold text-slate-700 min-w-[140px] text-center">Janeiro 2026</div>
+                <button id="btn-next-month" class="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors">
+                    <i class="ph ph-caret-right font-bold text-lg sm:text-base"></i>
+                </button>
+            </div>
+            <div class="flex bg-slate-100 rounded-xl p-1 w-full sm:w-auto justify-center">
+                <button id="btn-view-monthly" class="flex-1 sm:flex-none px-6 sm:px-4 py-2 sm:py-1.5 rounded-lg text-sm sm:text-xs font-bold transition-colors bg-white shadow-sm text-indigo-600">Mês</button>
+                <button id="btn-view-annual" class="flex-1 sm:flex-none px-6 sm:px-4 py-2 sm:py-1.5 rounded-lg text-sm sm:text-xs font-bold transition-colors text-slate-500 hover:text-slate-700">Ano</button>
+            </div>
+        </div>
+
+        <div id="calendar-root" class="calendar-container flex flex-col p-2 sm:p-4 gap-4 mt-2">
             <!-- Weeks -->
         <div class="mt-8 border-t border-slate-100 pt-8 pb-4">
             <!-- AdSense Placeholder -->

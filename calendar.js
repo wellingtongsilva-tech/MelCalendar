@@ -12,6 +12,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
     
     let state = {
+        viewMode: 'monthly',
+        activeMonth: new Date().getFullYear() === YEAR ? new Date().getMonth() : 0,
         events: [],
         config: {
             appTitle: 'Agenda Mel',
@@ -229,6 +231,27 @@ document.addEventListener('DOMContentLoaded', () => {
         rootEl.innerHTML = '';
         if (!state.isReady) return;
 
+        const monthNamesFull = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        const displayEl = document.getElementById('current-month-display');
+        if(displayEl) displayEl.textContent = `${monthNamesFull[state.activeMonth]} ${YEAR}`;
+
+        const navContainer = document.getElementById('month-nav-container');
+        if(navContainer) {
+            navContainer.style.display = state.viewMode === 'monthly' ? 'flex' : 'none';
+        }
+
+        const btnViewMonthly = document.getElementById('btn-view-monthly');
+        const btnViewAnnual = document.getElementById('btn-view-annual');
+        if(btnViewMonthly && btnViewAnnual) {
+            if(state.viewMode === 'monthly') {
+                btnViewMonthly.className = 'flex-1 sm:flex-none px-6 sm:px-4 py-2 sm:py-1.5 rounded-lg text-sm sm:text-xs font-bold transition-colors bg-white shadow-sm text-indigo-600';
+                btnViewAnnual.className = 'flex-1 sm:flex-none px-6 sm:px-4 py-2 sm:py-1.5 rounded-lg text-sm sm:text-xs font-bold transition-colors text-slate-500 hover:text-slate-700';
+            } else {
+                btnViewAnnual.className = 'flex-1 sm:flex-none px-6 sm:px-4 py-2 sm:py-1.5 rounded-lg text-sm sm:text-xs font-bold transition-colors bg-white shadow-sm text-indigo-600';
+                btnViewMonthly.className = 'flex-1 sm:flex-none px-6 sm:px-4 py-2 sm:py-1.5 rounded-lg text-sm sm:text-xs font-bold transition-colors text-slate-500 hover:text-slate-700';
+            }
+        }
+
         const todayStr = getTodayStr();
         const todayDateObj = new Date(todayStr + 'T00:00:00');
         const sevenDaysAgo = new Date(todayDateObj);
@@ -368,14 +391,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentMonthContainer.className = 'w-full mb-4';
                 
                 const isPastMonth = (YEAR < currentRealYear) || (YEAR === currentRealYear && currentMonth < currentRealMonth);
-                const isOpen = !isPastMonth;
+                const isOpen = state.viewMode === 'monthly' ? true : !isPastMonth;
                 const defaultView = isPastMonth ? 'chart' : 'calendar';
+                
+                // Hide header entirely in monthly mode (the top navigation already shows the month)
+                const headerClass = state.viewMode === 'monthly' ? 'hidden' : 'flex items-center gap-3 bg-white border border-slate-100 shadow-sm rounded-full pl-5 pr-2 py-1.5 hover:border-indigo-200 transition-colors z-10 w-full justify-between sm:w-auto sm:justify-start';
                 
                 const sep = document.createElement('div');
                 sep.className = 'month-separator transition-colors group scroll-mt-24';
                 
                 sep.innerHTML = `
-                    <div class="flex items-center gap-3 bg-white border border-slate-100 shadow-sm rounded-full pl-5 pr-2 py-1.5 hover:border-indigo-200 transition-colors z-10 w-full justify-between sm:w-auto sm:justify-start">
+                    <div class="${headerClass}">
                         <div class="flex items-center gap-2 cursor-pointer font-bold text-slate-700 outline-none text-sm sm:text-base flex-1 accordion-toggle-area">
                             ${monthNames[currentMonth]} ${YEAR}
                             <i class="ph ph-caret-down text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}"></i>
@@ -471,7 +497,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 currentMonthContainer.appendChild(sep);
                 currentMonthContainer.appendChild(currentMonthContent);
-                rootEl.appendChild(currentMonthContainer);
+                
+                if (state.viewMode === 'annual' || currentMonth === state.activeMonth) {
+                    rootEl.appendChild(currentMonthContainer);
+                }
                 
                 // If chart is the default view and it's open, render immediately (won't happen because past months are closed by default, but just in case)
                 if (isOpen && defaultView === 'chart') {
@@ -1643,9 +1672,54 @@ document.addEventListener('DOMContentLoaded', () => {
         btnMobileConfig.addEventListener('click', () => btnConfig.click());
     }
 
+    // --- View Mode & Navigation Controls ---
+    const btnPrevMonth = document.getElementById('btn-prev-month');
+    const btnNextMonth = document.getElementById('btn-next-month');
+    const btnViewMonthlyControl = document.getElementById('btn-view-monthly');
+    const btnViewAnnualControl = document.getElementById('btn-view-annual');
+
+    if (btnPrevMonth) {
+        btnPrevMonth.addEventListener('click', () => {
+            if (state.activeMonth > 0) {
+                state.activeMonth--;
+                renderCalendar();
+            }
+        });
+    }
+
+    if (btnNextMonth) {
+        btnNextMonth.addEventListener('click', () => {
+            if (state.activeMonth < 11) {
+                state.activeMonth++;
+                renderCalendar();
+            }
+        });
+    }
+
+    if (btnViewMonthlyControl) {
+        btnViewMonthlyControl.addEventListener('click', () => {
+            state.viewMode = 'monthly';
+            renderCalendar();
+        });
+    }
+
+    if (btnViewAnnualControl) {
+        btnViewAnnualControl.addEventListener('click', () => {
+            state.viewMode = 'annual';
+            renderCalendar();
+        });
+    }
+
     // --- Init ---
     btnToday.addEventListener('click', () => {
         const todayStr = getTodayStr();
+        
+        // Auto switch to the current month in monthly view if clicking "Hoje"
+        const currentM = new Date(todayStr + 'T00:00:00').getMonth();
+        if (state.viewMode === 'monthly' && state.activeMonth !== currentM) {
+            state.activeMonth = currentM;
+            renderCalendar();
+        }
         const el = document.getElementById(`day-${todayStr}`);
         if (el) {
             const monthContent = el.closest('.month-content');
