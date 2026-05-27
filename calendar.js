@@ -283,7 +283,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let currentMonthCalWrapper = null;
         const currentRealMonth = new Date().getMonth();
         const currentRealYear = new Date().getFullYear();
-        const todayStr = getTodayStr();
         const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
         // Guardar as instâncias de gráficos para poder alterar o tipo depois
@@ -771,7 +770,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     </button>
                 </div>
             </div>
-        `).join('');
+        `;
+    }).join('');
     }
 
     function resetEventForm() {
@@ -1597,17 +1597,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Mobile Bottom Navigation ---
-    const btnMobileHome = document.getElementById('btn-mobile-home');
     const btnMobileToday = document.getElementById('btn-mobile-today');
     const btnMobileFilters = document.getElementById('btn-mobile-filters');
     const btnMobileConfig = document.getElementById('btn-mobile-config');
 
-    if (btnMobileHome) {
-        btnMobileHome.addEventListener('click', () => {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            filtersPanel.classList.add('hidden');
-        });
-    }
     if (btnMobileToday) {
         btnMobileToday.addEventListener('click', () => btnToday.click());
     }
