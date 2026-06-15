@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
@@ -45,6 +46,11 @@
 
                 <!-- Actions -->
                 <div class="flex-1 flex justify-end items-center gap-1.5 sm:gap-2 relative">
+                    <button id="btnInstalar" style="display: none;" class="inline-flex items-center justify-center px-3 sm:px-4 py-2 rounded-full shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 font-bold text-sm transition-all gap-1.5 hover:scale-105 active:scale-95 cursor-pointer" title="Instalar Aplicativo">
+                        <i class="ph ph-download-simple text-lg"></i>
+                        <span class="hidden sm:inline">Instalar</span>
+                    </button>
+
                     <div id="credits-badge" class="inline-flex items-center justify-center px-3 sm:px-4 py-2 rounded-full shadow-sm bg-gradient-to-r from-amber-400 to-orange-500 text-white font-bold text-sm transition-all border border-transparent gap-1.5 cursor-pointer hover:shadow-md hover:scale-105" title="Créditos IA">
                         <i class="ph-fill ph-lightning text-lg"></i>
                         <span id="credits-display">10</span>
@@ -495,7 +501,16 @@
 
     <script src="api.js?v=1.1"></script>
     <script src="calendar.js?v=1.1"></script>
+    <script src="script.js?v=1.1"></script>
     <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker registrado com sucesso:', reg.scope))
+                    .catch(err => console.error('Erro ao registrar Service Worker:', err));
+            });
+        }
+
         window.addEventListener('load', () => {
             setTimeout(() => {
                 const splash = document.getElementById('splash-screen');
